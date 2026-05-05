@@ -28,6 +28,9 @@ configured roots
 * STDIO transport for local MCP hosts and MCP Inspector.
 * Streamable HTTP transport for remote MCP clients.
 * Optional embedded ngrok tunnel for quick remote development.
+* HTTP auth modes: `none`, `bearer`, and `oidc`.
+* OIDC/JWT validation using JWKS, issuer, audience, expiry, not-before, and identity allowlists.
+* MCP tool annotations mark exposed tools as read-only.
 * Read-only Git inspection tools:
 
   * `git_status`
@@ -35,6 +38,8 @@ configured roots
   * `git_log`
 
 ## MCP tools
+
+All exposed tools are read-only and are annotated with MCP `readOnlyHint`.
 
 Filesystem tools:
 
@@ -69,9 +74,15 @@ Tool paths are always interpreted relative to a configured root. `mcpfs` rejects
 
 `.gitignore` support is an additional policy layer. It never weakens the root boundary.
 
-The HTTP transport can be run with bearer-token authentication, or with authentication disabled for short-lived development tunnels.
+The HTTP transports support three auth modes:
 
-Do not expose `mcpfs` to the public internet without understanding what roots you configured.
+* `none` — no HTTP authentication. Useful only for local-only setups or short-lived development tunnels.
+* `bearer` — static bearer token loaded from an environment variable.
+* `oidc` — JWT/OIDC validation using a configured issuer, audience, JWKS URL, and identity allowlist.
+
+All MCP tools are read-only. No write tools are exposed.
+
+Do not expose `mcpfs` to the public internet without understanding what roots you configured and which auth mode is active.
 
 ## Installation
 
@@ -137,7 +148,7 @@ Arguments:
 
 HTTP transport is useful when the MCP client needs to connect to a network endpoint.
 
-Example config:
+Example config using bearer auth:
 
 ```json
 {
@@ -147,8 +158,10 @@ Example config:
     "transport": "http",
     "addr": "127.0.0.1:8080",
     "path": "/mcp",
-    "require_auth": true,
-    "auth_token_env": "MCPFS_TOKEN"
+    "auth": {
+      "mode": "bearer",
+      "token_env": "MCPFS_TOKEN"
+    }
   },
   "roots": [
     {
@@ -203,6 +216,67 @@ curl -i \
 
 A plain `GET /mcp` may return a protocol-level MCP response such as `405 Method Not Allowed`. That is expected; it means the request reached the MCP handler.
 
+## OIDC/JWT auth
+
+`mcpfs` can run as an OIDC/JWT-protected MCP resource server.
+
+It does not implement an OAuth authorization server. Instead, it validates bearer JWTs issued by an external identity provider such as Google Identity Platform, Firebase, Auth0, WorkOS, Zitadel, Keycloak, Dex, or Azure Entra ID.
+
+Example config:
+
+```json
+{
+  "server": {
+    "name": "mcpfs",
+    "version": "0.2.0",
+    "transport": "http",
+    "addr": "127.0.0.1:8080",
+    "path": "/mcp",
+    "auth": {
+      "mode": "oidc",
+      "issuer": "https://accounts.google.com",
+      "audience": "mcpfs",
+      "jwks_url": "https://www.googleapis.com/oauth2/v3/certs",
+      "allowed_emails": ["you@example.com"]
+    }
+  },
+  "roots": [
+    {
+      "id": "project",
+      "path": "/path/to/project",
+      "mode": "read",
+      "include": ["**/*"],
+      "exclude": ["**/.git/**", "**/.env", "**/.env.*"],
+      "use_gitignore": true,
+      "max_file_bytes": 262144
+    }
+  ]
+}
+```
+
+OIDC validation checks:
+
+* JWT signature using the configured JWKS URL.
+* `iss`
+* `aud`
+* `exp`
+* `nbf`, when present
+* `allowed_emails` and/or `allowed_subjects`
+
+At least one of `allowed_emails` or `allowed_subjects` must be configured.
+
+Example using subject allowlisting instead of email allowlisting:
+
+```json
+"auth": {
+  "mode": "oidc",
+  "issuer": "https://issuer.example.com",
+  "audience": "mcpfs",
+  "jwks_url": "https://issuer.example.com/.well-known/jwks.json",
+  "allowed_subjects": ["user-or-client-subject-id"]
+}
+```
+
 ## Embedded ngrok usage
 
 `mcpfs` can start an ngrok tunnel automatically for quick remote development.
@@ -213,8 +287,6 @@ Run:
 
 ```bash
 export NGROK_AUTHTOKEN="<your-ngrok-authtoken>"
-export MCPFS_TOKEN="$(openssl rand -hex 32)"
-
 ./scripts/run-ngrok.sh
 ```
 
@@ -226,13 +298,17 @@ https://example.ngrok-free.dev/mcp
 
 Use that URL in your remote MCP client.
 
-For short-lived development with ChatGPT Developer Mode, `config.ngrok.example.json` can use:
+For short-lived development with ChatGPT Developer Mode, `config.ngrok.example.json` uses:
 
 ```json
-"require_auth": false
+"auth": {
+  "mode": "none"
+}
 ```
 
 Only do this while actively testing, and only with carefully scoped roots.
+
+You can also run ngrok with bearer or OIDC auth by changing the `auth` block in the ngrok config.
 
 ## Configuration
 
@@ -250,16 +326,54 @@ Root config fields:
 
 Server config fields:
 
-| Field            | Description                                                          |
-| ---------------- | -------------------------------------------------------------------- |
-| `name`           | MCP server name.                                                     |
-| `version`        | MCP server version.                                                  |
-| `transport`      | `stdio`, `http`, or `http_ngrok`.                                    |
-| `addr`           | HTTP bind address. Defaults to `127.0.0.1:8080` for HTTP transports. |
-| `path`           | MCP HTTP path. Defaults to `/mcp`.                                   |
-| `require_auth`   | Whether HTTP bearer auth is required.                                |
-| `auth_token_env` | Environment variable containing the bearer token.                    |
-| `ngrok_url`      | Optional reserved ngrok URL/domain.                                  |
+| Field                   | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| `name`                  | MCP server name.                                                      |
+| `version`               | MCP server version.                                                   |
+| `transport`             | `stdio`, `http`, or `http_ngrok`.                                     |
+| `addr`                  | HTTP bind address. Defaults to `127.0.0.1:8080` for HTTP transports.  |
+| `path`                  | MCP HTTP path. Defaults to `/mcp`.                                    |
+| `auth.mode`             | HTTP auth mode: `none`, `bearer`, or `oidc`.                          |
+| `auth.token_env`        | Environment variable containing the bearer token when using `bearer`. |
+| `auth.issuer`           | Expected JWT issuer when using `oidc`.                                |
+| `auth.audience`         | Expected JWT audience when using `oidc`.                              |
+| `auth.jwks_url`         | JWKS URL used to verify JWT signatures when using `oidc`.             |
+| `auth.allowed_emails`   | Optional email allowlist for OIDC-authenticated users.                |
+| `auth.allowed_subjects` | Optional subject allowlist for OIDC-authenticated users.              |
+| `ngrok_url`             | Optional reserved ngrok URL/domain.                                   |
+
+Legacy `require_auth` and `auth_token_env` fields are still accepted for compatibility, but new configs should use `auth.mode`.
+
+### Auth examples
+
+No auth:
+
+```json
+"auth": {
+  "mode": "none"
+}
+```
+
+Bearer auth:
+
+```json
+"auth": {
+  "mode": "bearer",
+  "token_env": "MCPFS_TOKEN"
+}
+```
+
+OIDC auth:
+
+```json
+"auth": {
+  "mode": "oidc",
+  "issuer": "https://accounts.google.com",
+  "audience": "mcpfs",
+  "jwks_url": "https://www.googleapis.com/oauth2/v3/certs",
+  "allowed_emails": ["you@example.com"]
+}
+```
 
 ## Example workflows
 
@@ -352,11 +466,17 @@ Run with STDIO:
 ./bin/mcpfs -config config.example.json
 ```
 
-Run with HTTP:
+Run with HTTP bearer auth:
 
 ```bash
 export MCPFS_TOKEN="$(openssl rand -hex 32)"
 ./bin/mcpfs -config config.http.example.json
+```
+
+Run with HTTP OIDC auth:
+
+```bash
+./bin/mcpfs -config config.oidc.example.json
 ```
 
 Run with embedded ngrok:
@@ -382,3 +502,5 @@ Also check that example configs contain only placeholder values.
 ## Status
 
 `mcpfs` is currently read-only. The `mode` field accepts `read_write` for future compatibility, but no write tools are exposed.
+
+The exposed MCP tools are annotated as read-only.
