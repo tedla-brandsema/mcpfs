@@ -51,24 +51,25 @@ func (s *Service) root(id string) (*core.Root, error) {
 	return root, nil
 }
 
-func (s *Service) resolve(root *core.Root, requested string) (string, error) {
-	abs, err := core.ResolveInsideRoot(root.RealPath, requested)
-	if err != nil {
-		return "", err
-	}
-
-	rel, err := root.Rel(abs)
-	if err != nil {
-		return "", err
-	}
-
-	return rel, nil
-}
-
 func (s *Service) logAllowed(event string, rootID string, path string, attrs ...any) {
-	core.LogAllowed(s.logger, s, event, rootID, path, attrs...)
+	args := []any{
+		"service", s.Name(),
+		"event", event,
+		"root_id", rootID,
+		"path", path,
+	}
+	args = append(args, attrs...)
+
+	s.logger.Info("mcpfs allowed", args...)
 }
 
 func (s *Service) logDenied(event string, rootID string, path string, reason string) {
-	core.LogDenied(s.logger, s, event, rootID, path, reason)
+	s.logger.Warn(
+		"mcpfs denied",
+		slog.String("service", s.Name()),
+		slog.String("event", event),
+		slog.String("root_id", rootID),
+		slog.String("path", path),
+		slog.String("reason", reason),
+	)
 }
