@@ -12,6 +12,9 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_roots",
 		Description: "List configured filesystem roots and their read modes. Does not expose absolute host paths.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.RootsArgs) (*mcp.CallToolResult, fsservice.RootsResult, error) {
 		result, err := svc.Roots(ctx, args)
 		if err != nil {
@@ -23,6 +26,9 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_list",
 		Description: "List files under a configured filesystem root. Path must be relative to the selected root. Honors explicit excludes and .gitignore rules.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.ListArgs) (*mcp.CallToolResult, fsservice.ListResult, error) {
 		result, err := svc.List(ctx, args)
 		if err != nil {
@@ -34,6 +40,9 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_read",
 		Description: "Read a file from a configured filesystem root. Path must be relative to the selected root. Honors explicit excludes, .gitignore rules, symlink checks, and file size limits.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.ReadArgs) (*mcp.CallToolResult, fsservice.ReadResult, error) {
 		result, err := svc.Read(ctx, args)
 		if err != nil {
@@ -45,6 +54,9 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_search",
 		Description: "Search text files under a configured filesystem root using a case-sensitive substring query. Honors explicit excludes and .gitignore rules.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.SearchArgs) (*mcp.CallToolResult, fsservice.SearchResult, error) {
 		result, err := svc.Search(ctx, args)
 		if err != nil {
@@ -56,6 +68,9 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_stat",
 		Description: "Return metadata for a file or directory under a configured filesystem root. Path must be relative to the selected root.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.StatArgs) (*mcp.CallToolResult, fsservice.StatResult, error) {
 		result, err := svc.Stat(ctx, args)
 		if err != nil {
