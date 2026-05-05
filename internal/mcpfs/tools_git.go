@@ -30,4 +30,15 @@ func RegisterGitTools(server *mcp.Server, svc *gitservice.Service) {
 		}
 		return toolJSON(result), result, nil
 	})
+	
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "git_log",
+		Description: "Return recent git commit history for a configured filesystem root. Optionally restrict to a relative path.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args gitservice.LogArgs) (*mcp.CallToolResult, gitservice.LogResult, error) {
+		result, err := svc.Log(ctx, args)
+		if err != nil {
+			return toolError(err), gitservice.LogResult{}, nil
+		}
+		return toolJSON(result), result, nil
+	})
 }

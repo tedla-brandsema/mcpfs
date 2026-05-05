@@ -37,3 +37,28 @@ type DiffResult struct {
 	Truncated bool   `json:"truncated"`
 	Diff      string `json:"diff"`
 }
+
+type LogArgs struct {
+	RootID   string `json:"root_id" jsonschema:"configured root id"`
+	Limit    int    `json:"limit,omitempty" jsonschema:"maximum number of commits to return"`
+	Path     string `json:"path,omitempty" jsonschema:"optional relative path inside the root"`
+	MaxBytes int    `json:"max_bytes,omitempty" jsonschema:"maximum git output bytes to return"`
+}
+
+type LogResult struct {
+	RootID    string      `json:"root_id"`
+	Path      string      `json:"path,omitempty"`
+	Limit     int         `json:"limit"`
+	Commits   []LogCommit `json:"commits"`
+	Truncated bool        `json:"truncated"`
+}
+
+type LogCommit struct {
+	Hash       string `json:"hash"`
+	ShortHash  string `json:"short_hash"`
+	AuthorName string `json:"author_name"`
+	AuthorEmail string `json:"author_email"`
+	AuthorDate string `json:"author_date"`
+	Subject    string `json:"subject"`
+	Body       string `json:"body,omitempty"`
+}
