@@ -9,6 +9,12 @@ import (
 type Config struct {
 	Mode     string
 	TokenEnv string
+
+	Issuer          string
+	Audience        string
+	JWKSURL         string
+	AllowedEmails   []string
+	AllowedSubjects []string
 }
 
 type Principal struct {
@@ -40,6 +46,9 @@ func New(cfg Config) (Authenticator, error) {
 
 	case "bearer":
 		return NewBearerFromEnv(cfg.TokenEnv)
+
+	case "oidc":
+		return nil, fmt.Errorf("oidc auth is not implemented yet")
 
 	default:
 		return nil, fmt.Errorf("unsupported auth mode %q", cfg.Mode)

@@ -46,8 +46,13 @@ func main() {
 
 	case "http", "http_ngrok":
 		authenticator, err := auth.New(auth.Config{
-			Mode:     string(cfg.Server.Auth.Mode),
-			TokenEnv: cfg.Server.Auth.TokenEnv,
+			Mode:            string(cfg.Server.Auth.Mode),
+			TokenEnv:        cfg.Server.Auth.TokenEnv,
+			Issuer:          cfg.Server.Auth.Issuer,
+			Audience:        cfg.Server.Auth.Audience,
+			JWKSURL:         cfg.Server.Auth.JWKSURL,
+			AllowedEmails:   cfg.Server.Auth.AllowedEmails,
+			AllowedSubjects: cfg.Server.Auth.AllowedSubjects,
 		})
 		if err != nil {
 			logger.Error("create authenticator", "error", err)

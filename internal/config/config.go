@@ -12,6 +12,7 @@ type AuthMode string
 const (
 	AuthModeNone   AuthMode = "none"
 	AuthModeBearer AuthMode = "bearer"
+	AuthModeOIDC   AuthMode = "oidc"
 )
 
 type AuthConfig struct {
@@ -19,6 +20,13 @@ type AuthConfig struct {
 
 	// Used when mode is "bearer".
 	TokenEnv string `json:"token_env,omitempty"`
+
+	// Used when mode is "oidc".
+	Issuer          string   `json:"issuer,omitempty"`
+	Audience        string   `json:"audience,omitempty"`
+	JWKSURL         string   `json:"jwks_url,omitempty"`
+	AllowedEmails   []string `json:"allowed_emails,omitempty"`
+	AllowedSubjects []string `json:"allowed_subjects,omitempty"`
 }
 
 type Mode string
@@ -178,6 +186,21 @@ func (s *ServerConfig) normalizeAuth() error {
 	case AuthModeBearer:
 		if s.Auth.TokenEnv == "" {
 			return fmt.Errorf("server.auth.token_env is required when server.auth.mode is %q", AuthModeBearer)
+		}
+		return nil
+
+	case AuthModeOIDC:
+		if s.Auth.Issuer == "" {
+			return fmt.Errorf("server.auth.issuer is required when server.auth.mode is %q", AuthModeOIDC)
+		}
+		if s.Auth.Audience == "" {
+			return fmt.Errorf("server.auth.audience is required when server.auth.mode is %q", AuthModeOIDC)
+		}
+		if s.Auth.JWKSURL == "" {
+			return fmt.Errorf("server.auth.jwks_url is required when server.auth.mode is %q", AuthModeOIDC)
+		}
+		if len(s.Auth.AllowedEmails) == 0 && len(s.Auth.AllowedSubjects) == 0 {
+			return fmt.Errorf("server.auth.allowed_emails or server.auth.allowed_subjects is required when server.auth.mode is %q", AuthModeOIDC)
 		}
 		return nil
 
