@@ -37,7 +37,12 @@ func (s *Service) Show(ctx context.Context, args ShowArgs) (ShowResult, error) {
 		return ShowResult{}, err
 	}
 
-	pathForResult := ""
+	pathForResult, err := s.resolveOptionalPath(root, args.Path, pathScopeFileOrDir)
+	if err != nil {
+		s.logDenied("git.show", root.ID, args.Path, err.Error())
+		return ShowResult{}, err
+	}
+
 	gitArgs := []string{
 		"show",
 		"--no-ext-diff",
@@ -45,23 +50,7 @@ func (s *Service) Show(ctx context.Context, args ShowArgs) (ShowResult, error) {
 		"--pretty=format:",
 		commitHash,
 	}
-
-	if args.Path != "" {
-		rel, err := s.resolve(root, args.Path)
-		if err != nil {
-			s.logDenied("git.show", root.ID, args.Path, err.Error())
-			return ShowResult{}, err
-		}
-
-		if !root.Matcher.AllowFile(rel) && !root.Matcher.AllowDir(rel) {
-			err := fmt.Errorf("path is excluded")
-			s.logDenied("git.show", root.ID, rel, err.Error())
-			return ShowResult{}, err
-		}
-
-		pathForResult = rel
-		gitArgs = append(gitArgs, "--", rel)
-	}
+	gitArgs = appendGitPathspec(gitArgs, pathForResult)
 
 	stdout, stderr, truncated, err := runGit(ctx, root.RealPath, maxBytes, gitArgs...)
 	if err != nil {

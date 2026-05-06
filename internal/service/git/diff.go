@@ -26,52 +26,41 @@ func (s *Service) Diff(ctx context.Context, args DiffArgs) (DiffResult, error) {
 		gitArgs = append(gitArgs, "--cached")
 	}
 
-	pathForResult := ""
-	if args.Path != "" {
-		rel, err := s.resolve(root, args.Path)
+	pathForResult, err := s.resolveOptionalPath(root, args.Path, pathScopeFile)
+	if err != nil {
+		s.logDenied("git.diff", root.ID, args.Path, err.Error())
+		return DiffResult{}, err
+	}
+
+	if pathForResult != "" && !args.Staged {
+		untracked, err := s.isUntracked(ctx, root, pathForResult)
 		if err != nil {
-			s.logDenied("git.diff", root.ID, args.Path, err.Error())
+			s.logDenied("git.diff", root.ID, pathForResult, err.Error())
 			return DiffResult{}, err
 		}
 
-		if !root.Matcher.AllowFile(rel) {
-			err := fmt.Errorf("file is excluded")
-			s.logDenied("git.diff", root.ID, rel, err.Error())
-			return DiffResult{}, err
-		}
-
-		pathForResult = rel
-
-		if !args.Staged {
-			untracked, err := s.isUntracked(ctx, root, rel)
+		if untracked {
+			result, err := s.diffUntracked(ctx, root, pathForResult, maxBytes)
 			if err != nil {
-				s.logDenied("git.diff", root.ID, rel, err.Error())
+				s.logDenied("git.diff", root.ID, pathForResult, err.Error())
 				return DiffResult{}, err
 			}
 
-			if untracked {
-				result, err := s.diffUntracked(ctx, root, rel, maxBytes)
-				if err != nil {
-					s.logDenied("git.diff", root.ID, rel, err.Error())
-					return DiffResult{}, err
-				}
+			s.logAllowed(
+				"git.diff",
+				root.ID,
+				pathForResult,
+				"staged", result.Staged,
+				"bytes", result.Bytes,
+				"truncated", result.Truncated,
+				"synthetic", true,
+			)
 
-				s.logAllowed(
-					"git.diff",
-					root.ID,
-					rel,
-					"staged", result.Staged,
-					"bytes", result.Bytes,
-					"truncated", result.Truncated,
-					"synthetic", true,
-				)
-
-				return result, nil
-			}
+			return result, nil
 		}
-
-		gitArgs = append(gitArgs, "--", rel)
 	}
+
+	gitArgs = appendGitPathspec(gitArgs, pathForResult)
 
 	stdout, stderr, truncated, err := runGit(ctx, root.RealPath, maxBytes, gitArgs...)
 	if err != nil {

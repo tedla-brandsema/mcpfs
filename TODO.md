@@ -77,8 +77,6 @@
   Several tools already need bounded output.
   Centralize max bytes / max entries behavior so future tools behave consistently.
 
-## IN PROGRESS
-
 * [ ] Add a shared path-scoped git helper.
   `git_diff`, `git_log`, and `git_show` should use a common helper for:
 
@@ -86,6 +84,9 @@
   * resolving paths inside roots
   * appending `-- path`
   * handling git command limits/errors
+  
+## IN PROGRESS
+
 
 ## BACKLOG
 

@@ -32,17 +32,13 @@ func (s *Service) Log(ctx context.Context, args LogArgs) (LogResult, error) {
 		strconv.Itoa(limit),
 	}
 
-	pathForResult := ""
-	if args.Path != "" {
-		rel, err := s.resolve(root, args.Path)
-		if err != nil {
-			s.logDenied("git.log", root.ID, args.Path, err.Error())
-			return LogResult{}, err
-		}
-
-		pathForResult = rel
-		gitArgs = append(gitArgs, "--", rel)
+	pathForResult, err := s.resolveOptionalPath(root, args.Path, pathScopeFileOrDir)
+	if err != nil {
+		s.logDenied("git.log", root.ID, args.Path, err.Error())
+		return LogResult{}, err
 	}
+
+	gitArgs = appendGitPathspec(gitArgs, pathForResult)
 
 	stdout, stderr, truncated, err := runGit(ctx, root.RealPath, maxBytes, gitArgs...)
 	if err != nil {
