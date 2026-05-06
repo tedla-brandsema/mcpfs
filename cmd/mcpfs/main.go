@@ -16,16 +16,18 @@ import (
 
 func main() {
 	var configPath string
-	flag.StringVar(&configPath, "config", "config.json", "path to mcpfs config file")
+	flag.StringVar(&configPath, "config", "", "path to mcpfs config file; defaults to the global user config")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
 
-	cfg, err := config.Load(configPath)
+	cfg, resolvedConfigPath, err := config.LoadOrCreate(configPath)
 	if err != nil {
 		logger.Error("load config", "error", err)
 		os.Exit(1)
 	}
+
+	logger.Info("loaded config", "path", resolvedConfigPath)
 
 	server, err := mcpfs.NewServer(cfg, logger)
 	if err != nil {

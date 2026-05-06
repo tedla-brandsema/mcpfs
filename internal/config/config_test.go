@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -221,6 +223,108 @@ func TestValidateRejectsNegativeMaxFileBytes(t *testing.T) {
 		t.Fatal("Validate returned nil error")
 	}
 	assertErrorContains(t, err, "max_file_bytes must be >= 0")
+
+}
+
+func TestValidateAllowsEmptyRoots(t *testing.T) {
+	cfg := validConfig()
+	cfg.Roots = nil
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate returned error: %v", err)
+	}
+}
+
+func TestDecodeEmbeddedGlobalConfig(t *testing.T) {
+	cfg, err := Decode(embeddedGlobalConfig)
+	if err != nil {
+		t.Fatalf("Decode returned error: %v", err)
+	}
+
+	if cfg.Server.Name != "mcpfs" {
+		t.Fatalf("Server.Name = %q, want mcpfs", cfg.Server.Name)
+	}
+	if cfg.Server.Transport != "stdio" {
+		t.Fatalf("Server.Transport = %q, want stdio", cfg.Server.Transport)
+	}
+	if len(cfg.Roots) != 0 {
+		t.Fatalf("len(Roots) = %d, want 0", len(cfg.Roots))
+	}
+}
+
+func TestLoadOrCreateGlobalWritesEmbeddedConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "mcpfs", GlobalConfigFileName)
+
+	cfg, err := LoadOrCreateGlobal(configPath)
+	if err != nil {
+		t.Fatalf("LoadOrCreateGlobal returned error: %v", err)
+	}
+
+	if cfg.Server.Name != "mcpfs" {
+		t.Fatalf("Server.Name = %q, want mcpfs", cfg.Server.Name)
+	}
+
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("config was not written: %v", err)
+	}
+}
+
+func TestLoadOrCreateGlobalLoadsExistingConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "mcpfs", GlobalConfigFileName)
+
+	data := []byte(`{
+		"server": {
+			"name": "custom-mcpfs",
+			"version": "9.9.9",
+			"transport": "stdio"
+		},
+		"roots": []
+	}`)
+
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadOrCreateGlobal(configPath)
+	if err != nil {
+		t.Fatalf("LoadOrCreateGlobal returned error: %v", err)
+	}
+
+	if cfg.Server.Name != "custom-mcpfs" {
+		t.Fatalf("Server.Name = %q, want custom-mcpfs", cfg.Server.Name)
+	}
+}
+
+func TestLoadOrCreateUsesExplicitConfigPath(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "explicit.json")
+
+	data := []byte(`{
+		"server": {
+			"name": "explicit-mcpfs",
+			"version": "1.2.3",
+			"transport": "stdio"
+		},
+		"roots": []
+	}`)
+
+	if err := os.WriteFile(configPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, resolved, err := LoadOrCreate(configPath)
+	if err != nil {
+		t.Fatalf("LoadOrCreate returned error: %v", err)
+	}
+
+	if resolved != configPath {
+		t.Fatalf("resolved = %q, want %q", resolved, configPath)
+	}
+	if cfg.Server.Name != "explicit-mcpfs" {
+		t.Fatalf("Server.Name = %q, want explicit-mcpfs", cfg.Server.Name)
+	}
 }
 
 func validConfig() Config {

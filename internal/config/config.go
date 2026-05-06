@@ -1,11 +1,19 @@
 package config
 
 import (
+	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
+
+//go:embed mcpfs.cfg.json
+var embeddedGlobalConfig []byte
+
+const GlobalConfigFileName = "mcpfs.cfg.json"
 
 type AuthMode string
 
@@ -75,6 +83,63 @@ func Load(path string) (Config, error) {
 		return Config{}, fmt.Errorf("read config: %w", err)
 	}
 
+	return Decode(data)
+}
+
+func LoadOrCreate(path string) (Config, string, error) {
+	if path != "" {
+		cfg, err := Load(path)
+		if err != nil {
+			return Config{}, "", err
+		}
+		return cfg, path, nil
+	}
+
+	globalPath, err := DefaultGlobalPath()
+	if err != nil {
+		return Config{}, "", err
+	}
+
+	cfg, err := LoadOrCreateGlobal(globalPath)
+	if err != nil {
+		return Config{}, "", err
+	}
+
+	return cfg, globalPath, nil
+}
+
+func LoadOrCreateGlobal(path string) (Config, error) {
+	if path == "" {
+		return Config{}, fmt.Errorf("config path is required")
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return Config{}, fmt.Errorf("stat config: %w", err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return Config{}, fmt.Errorf("create config dir: %w", err)
+		}
+
+		if err := os.WriteFile(path, embeddedGlobalConfig, 0o644); err != nil {
+			return Config{}, fmt.Errorf("write config: %w", err)
+		}
+	}
+
+	return Load(path)
+}
+
+func DefaultGlobalPath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve user config dir: %w", err)
+	}
+
+	return filepath.Join(dir, "mcpfs", GlobalConfigFileName), nil
+}
+
+func Decode(data []byte) (Config, error) {
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("decode config: %w", err)
@@ -119,10 +184,6 @@ func (c *Config) Validate() error {
 
 	default:
 		return fmt.Errorf("unsupported server.transport %q", c.Server.Transport)
-	}
-
-	if len(c.Roots) == 0 {
-		return fmt.Errorf("at least one root is required")
 	}
 
 	seen := make(map[string]struct{}, len(c.Roots))
