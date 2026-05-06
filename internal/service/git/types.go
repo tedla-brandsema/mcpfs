@@ -34,6 +34,7 @@ type DiffResult struct {
 	Path      string `json:"path,omitempty"`
 	Staged    bool   `json:"staged"`
 	Bytes     int    `json:"bytes"`
+	MaxBytes  int    `json:"max_bytes"`
 	Truncated bool   `json:"truncated"`
 	Diff      string `json:"diff"`
 }
@@ -52,6 +53,7 @@ type BlameResult struct {
 	StartLine int         `json:"start_line"`
 	EndLine   int         `json:"end_line"`
 	Bytes     int         `json:"bytes"`
+	MaxBytes  int         `json:"max_bytes"`
 	Lines     []BlameLine `json:"lines"`
 	Truncated bool        `json:"truncated"`
 }
@@ -80,6 +82,7 @@ type ShowResult struct {
 	Path      string     `json:"path,omitempty"`
 	Commit    ShowCommit `json:"commit"`
 	Bytes     int        `json:"bytes"`
+	MaxBytes  int        `json:"max_bytes"`
 	Truncated bool       `json:"truncated"`
 	Diff      string     `json:"diff"`
 }
@@ -105,6 +108,7 @@ type LogResult struct {
 	RootID    string      `json:"root_id"`
 	Path      string      `json:"path,omitempty"`
 	Limit     int         `json:"limit"`
+	MaxBytes  int         `json:"max_bytes"`
 	Commits   []LogCommit `json:"commits"`
 	Truncated bool        `json:"truncated"`
 }

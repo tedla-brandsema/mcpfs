@@ -74,6 +74,7 @@ func (s *Service) Diff(ctx context.Context, args DiffArgs) (DiffResult, error) {
 		Path:      pathForResult,
 		Staged:    args.Staged,
 		Bytes:     len(stdout),
+		MaxBytes:  maxBytes,
 		Truncated: truncated,
 		Diff:      stdout,
 	}
@@ -149,6 +150,7 @@ func (s *Service) diffUntracked(ctx context.Context, root *core.Root, rel string
 		Path:      rel,
 		Staged:    false,
 		Bytes:     len(diff),
+		MaxBytes:  maxBytes,
 		Truncated: truncated,
 		Diff:      diff,
 	}, nil

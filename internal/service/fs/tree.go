@@ -82,12 +82,14 @@ func (s *Service) Tree(ctx context.Context, args TreeArgs) (TreeResult, error) {
 	}
 
 	result := TreeResult{
-		RootID:    root.ID,
-		Path:      rel,
-		Root:      rootEntry,
-		Entries:   entries,
-		Text:      renderTreeText(tree),
-		Truncated: truncated,
+		RootID:     root.ID,
+		Path:       rel,
+		Root:       rootEntry,
+		MaxDepth:   maxDepth,
+		MaxEntries: maxEntries,
+		Entries:    entries,
+		Text:       renderTreeText(tree),
+		Truncated:  truncated,
 	}
 
 	s.logAllowed("mcpfs.tree", root.ID, rel, "entries", count, "truncated", result.Truncated)

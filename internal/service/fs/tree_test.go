@@ -90,6 +90,9 @@ func TestTreeHonorsMaxEntries(t *testing.T) {
 		t.Fatalf("Tree returned error: %v", err)
 	}
 
+	if result.MaxEntries != 2 {
+		t.Fatalf("MaxEntries = %d, want 2", result.MaxEntries)
+	}
 	assertTreeEntryPaths(t, result.Entries, []string{"a.txt", "b.txt"})
 	if !result.Truncated {
 		t.Fatal("Truncated = false, want true")

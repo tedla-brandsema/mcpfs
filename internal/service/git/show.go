@@ -69,6 +69,7 @@ func (s *Service) Show(ctx context.Context, args ShowArgs) (ShowResult, error) {
 		Path:      pathForResult,
 		Commit:    commit,
 		Bytes:     len(diff),
+		MaxBytes:  maxBytes,
 		Truncated: truncated,
 		Diff:      diff,
 	}

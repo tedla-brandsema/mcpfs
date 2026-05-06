@@ -85,6 +85,7 @@ func (s *Service) Blame(ctx context.Context, args BlameArgs) (BlameResult, error
 		StartLine: startLine,
 		EndLine:   endLine,
 		Bytes:     len(output),
+		MaxBytes:  maxBytes,
 		Lines:     lines,
 		Truncated: truncated,
 	}

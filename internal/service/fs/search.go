@@ -32,9 +32,10 @@ func (s *Service) Search(ctx context.Context, args SearchArgs) (SearchResult, er
 	glob := filepath.ToSlash(strings.TrimSpace(args.Glob))
 
 	result := SearchResult{
-		RootID:  root.ID,
-		Query:   args.Query,
-		Matches: make([]SearchMatch, 0),
+		RootID:     root.ID,
+		Query:      args.Query,
+		MaxResults: maxResults,
+		Matches:    make([]SearchMatch, 0),
 	}
 
 	err = iofs.WalkDir(root.ReadFS, ".", func(pathRel string, d iofs.DirEntry, walkErr error) error {

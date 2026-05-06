@@ -85,6 +85,7 @@ func (s *Service) ReadLines(ctx context.Context, args ReadLinesArgs) (ReadLinesR
 		Path:      rel,
 		StartLine: startLine,
 		EndLine:   endLine,
+		MaxLines:  window,
 		Lines:     make([]ReadLine, 0),
 	}
 

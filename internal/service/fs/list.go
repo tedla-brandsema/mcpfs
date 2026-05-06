@@ -49,9 +49,10 @@ func (s *Service) List(ctx context.Context, args ListArgs) (ListResult, error) {
 	maxEntries := limits.ClampInt(args.MaxEntries, 200, 1000)
 
 	result := ListResult{
-		RootID:  root.ID,
-		Path:    rel,
-		Entries: make([]Entry, 0),
+		RootID:     root.ID,
+		Path:       rel,
+		MaxEntries: maxEntries,
+		Entries:    make([]Entry, 0),
 	}
 
 	if args.Recursive {

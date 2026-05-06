@@ -114,6 +114,9 @@ func TestShowHonorsMaxBytes(t *testing.T) {
 		t.Fatalf("Show returned error: %v", err)
 	}
 
+	if result.MaxBytes != 80 {
+		t.Fatalf("MaxBytes = %d, want 80", result.MaxBytes)
+	}
 	if result.Bytes > 80 {
 		t.Fatalf("Bytes = %d, want <= 80", result.Bytes)
 	}

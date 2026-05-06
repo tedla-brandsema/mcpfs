@@ -44,6 +44,9 @@ func TestListRecursiveHonorsMaxEntries(t *testing.T) {
 		t.Fatalf("List returned error: %v", err)
 	}
 
+	if result.MaxEntries != 2 {
+		t.Fatalf("MaxEntries = %d, want 2", result.MaxEntries)
+	}
 	if len(result.Entries) != 2 {
 		t.Fatalf("len(Entries) = %d, want 2", len(result.Entries))
 	}

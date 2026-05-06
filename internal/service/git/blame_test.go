@@ -128,6 +128,9 @@ func TestBlameReturnsLineRange(t *testing.T) {
 		t.Fatalf("Blame returned error: %v", err)
 	}
 
+	if result.MaxBytes != 65536 {
+		t.Fatalf("MaxBytes = %d, want 65536", result.MaxBytes)
+	}
 	if result.Path != "file.txt" {
 		t.Fatalf("Path = %q, want file.txt", result.Path)
 	}

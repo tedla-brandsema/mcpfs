@@ -106,6 +106,9 @@ func TestSearchRegexHonorsMaxResults(t *testing.T) {
 		t.Fatalf("SearchRegex returned error: %v", err)
 	}
 
+	if result.MaxResults != 2 {
+		t.Fatalf("MaxResults = %d, want 2", result.MaxResults)
+	}
 	if len(result.Matches) != 2 {
 		t.Fatalf("len(Matches) = %d, want 2", len(result.Matches))
 	}

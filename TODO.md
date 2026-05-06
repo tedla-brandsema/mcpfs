@@ -135,6 +135,17 @@
 
   Include safeguards for invalid regexes and expensive searches.
 
+* [x] Add tool result metadata consistency.
+  Standardize fields such as:
+
+  * `root_id`
+  * `path`
+  * `truncated`
+  * `max_bytes`
+  * `max_entries`
+  * `duration_ms`
+  * `warnings`
+
 ## IN PROGRESS
 
 
@@ -165,17 +176,6 @@
   * test/config/documentation file counts
 
   This should be heuristic and language-agnostic.
-
-* [ ] Add tool result metadata consistency.
-  Standardize fields such as:
-
-  * `root_id`
-  * `path`
-  * `truncated`
-  * `max_bytes`
-  * `max_entries`
-  * `duration_ms`
-  * `warnings`
 
 * [ ] Add optional command execution framework for explicitly allowed read-only/dev commands.
   Keep disabled by default.

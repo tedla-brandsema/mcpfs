@@ -52,6 +52,7 @@ func (s *Service) SearchRegex(ctx context.Context, args SearchRegexArgs) (Search
 		Query:         args.Query,
 		Glob:          glob,
 		CaseSensitive: caseSensitive,
+		MaxResults:    maxResults,
 		Matches:       make([]SearchMatch, 0),
 	}
 

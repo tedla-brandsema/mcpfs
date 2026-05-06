@@ -57,6 +57,7 @@ func (s *Service) Log(ctx context.Context, args LogArgs) (LogResult, error) {
 		RootID:    root.ID,
 		Path:      pathForResult,
 		Limit:     limit,
+		MaxBytes:  maxBytes,
 		Commits:   commits,
 		Truncated: truncated,
 	}

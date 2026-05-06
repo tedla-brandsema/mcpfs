@@ -73,6 +73,7 @@ func (s *Service) Read(ctx context.Context, args ReadArgs) (ReadResult, error) {
 				Bytes:     0,
 				Size:      info.Size(),
 				Offset:    args.Offset,
+				Limit:     limit,
 				Truncated: false,
 				Content:   "",
 			}
@@ -93,6 +94,7 @@ func (s *Service) Read(ctx context.Context, args ReadArgs) (ReadResult, error) {
 		Bytes:     len(data),
 		Size:      info.Size(),
 		Offset:    args.Offset,
+		Limit:     limit,
 		Truncated: args.Offset+int64(len(data)) < info.Size(),
 		Content:   string(data),
 	}

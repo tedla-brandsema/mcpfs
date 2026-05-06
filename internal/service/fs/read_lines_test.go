@@ -21,6 +21,9 @@ func TestReadLinesReturnsLineRange(t *testing.T) {
 		t.Fatalf("ReadLines returned error: %v", err)
 	}
 
+	if result.MaxLines != 2 {
+		t.Fatalf("MaxLines = %d, want 2", result.MaxLines)
+	}
 	if result.RootID != "repo" {
 		t.Fatalf("RootID = %q, want %q", result.RootID, "repo")
 	}

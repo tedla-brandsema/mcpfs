@@ -55,6 +55,9 @@ func TestReadHonorsOffsetAndLimit(t *testing.T) {
 		t.Fatalf("Read returned error: %v", err)
 	}
 
+	if result.Limit != 3 {
+		t.Fatalf("Limit = %d, want 3", result.Limit)
+	}
 	if result.Content != "cde" {
 		t.Fatalf("Content = %q, want %q", result.Content, "cde")
 	}

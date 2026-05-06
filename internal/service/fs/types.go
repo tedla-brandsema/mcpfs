@@ -27,10 +27,11 @@ type Entry struct {
 }
 
 type ListResult struct {
-	RootID    string  `json:"root_id"`
-	Path      string  `json:"path"`
-	Entries   []Entry `json:"entries"`
-	Truncated bool    `json:"truncated"`
+	RootID     string  `json:"root_id"`
+	Path       string  `json:"path"`
+	MaxEntries int     `json:"max_entries"`
+	Entries    []Entry `json:"entries"`
+	Truncated  bool    `json:"truncated"`
 }
 
 type TreeArgs struct {
@@ -52,12 +53,14 @@ type TreeEntry struct {
 }
 
 type TreeResult struct {
-	Root      TreeEntry   `json:"root"`
-	RootID    string      `json:"root_id"`
-	Path      string      `json:"path"`
-	Entries   []TreeEntry `json:"entries"`
-	Text      string      `json:"text"`
-	Truncated bool        `json:"truncated"`
+	Root       TreeEntry   `json:"root"`
+	RootID     string      `json:"root_id"`
+	Path       string      `json:"path"`
+	MaxDepth   int         `json:"max_depth"`
+	MaxEntries int         `json:"max_entries"`
+	Entries    []TreeEntry `json:"entries"`
+	Text       string      `json:"text"`
+	Truncated  bool        `json:"truncated"`
 }
 
 type ReadArgs struct {
@@ -73,6 +76,7 @@ type ReadResult struct {
 	Bytes     int    `json:"bytes"`
 	Size      int64  `json:"size"`
 	Offset    int64  `json:"offset"`
+	Limit     int64  `json:"limit"`
 	Truncated bool   `json:"truncated"`
 	Content   string `json:"content"`
 }
@@ -94,6 +98,7 @@ type ReadLinesResult struct {
 	Path      string     `json:"path"`
 	StartLine int        `json:"start_line"`
 	EndLine   int        `json:"end_line"`
+	MaxLines  int        `json:"max_lines"`
 	Lines     []ReadLine `json:"lines"`
 	Truncated bool       `json:"truncated"`
 }
@@ -112,10 +117,11 @@ type SearchMatch struct {
 }
 
 type SearchResult struct {
-	RootID    string        `json:"root_id"`
-	Query     string        `json:"query"`
-	Matches   []SearchMatch `json:"matches"`
-	Truncated bool          `json:"truncated"`
+	RootID     string        `json:"root_id"`
+	Query      string        `json:"query"`
+	MaxResults int           `json:"max_results"`
+	Matches    []SearchMatch `json:"matches"`
+	Truncated  bool          `json:"truncated"`
 }
 
 type SearchRegexArgs struct {
@@ -131,6 +137,7 @@ type SearchRegexResult struct {
 	Query         string        `json:"query"`
 	Glob          string        `json:"glob,omitempty"`
 	CaseSensitive bool          `json:"case_sensitive"`
+	MaxResults    int           `json:"max_results"`
 	Matches       []SearchMatch `json:"matches"`
 	Truncated     bool          `json:"truncated"`
 }
