@@ -118,12 +118,7 @@
 
   This is still generic and read-only, but lower priority than `git_show`.
 
-## IN PROGRESS
-
-
-## BACKLOG
-
-* [ ] Add `fs_search_regex`.
+* [x] Add `fs_search_regex`.
   Add regex search as a separate tool rather than overloading substring search.
 
   Suggested input:
@@ -139,6 +134,11 @@
   ```
 
   Include safeguards for invalid regexes and expensive searches.
+
+## IN PROGRESS
+
+
+## BACKLOG
 
 * [ ] Add stable location/range types.
   Introduce shared internal/output types for:

@@ -118,6 +118,23 @@ type SearchResult struct {
 	Truncated bool          `json:"truncated"`
 }
 
+type SearchRegexArgs struct {
+	RootID        string `json:"root_id" jsonschema:"configured root id"`
+	Query         string `json:"query" jsonschema:"regular expression query"`
+	Glob          string `json:"glob,omitempty" jsonschema:"optional glob such as **/*.go"`
+	CaseSensitive *bool  `json:"case_sensitive,omitempty" jsonschema:"whether regex matching is case-sensitive; defaults to true"`
+	MaxResults    int    `json:"max_results,omitempty" jsonschema:"maximum number of matches"`
+}
+
+type SearchRegexResult struct {
+	RootID        string        `json:"root_id"`
+	Query         string        `json:"query"`
+	Glob          string        `json:"glob,omitempty"`
+	CaseSensitive bool          `json:"case_sensitive"`
+	Matches       []SearchMatch `json:"matches"`
+	Truncated     bool          `json:"truncated"`
+}
+
 type StatArgs struct {
 	RootID string `json:"root_id" jsonschema:"configured root id"`
 	Path   string `json:"path" jsonschema:"relative path inside the root"`

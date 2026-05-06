@@ -94,6 +94,20 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "fs_search_regex",
+		Description: "Search text files under a configured filesystem root using a regular expression query. Honors explicit excludes and .gitignore rules.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.SearchRegexArgs) (*mcp.CallToolResult, fsservice.SearchRegexResult, error) {
+		result, err := svc.SearchRegex(ctx, args)
+		if err != nil {
+			return toolError(err), fsservice.SearchRegexResult{}, nil
+		}
+		return toolJSON(result), result, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_stat",
 		Description: "Return metadata for a file or directory under a configured filesystem root. Path must be relative to the selected root.",
 		Annotations: &mcp.ToolAnnotations{
