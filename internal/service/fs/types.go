@@ -33,6 +33,33 @@ type ListResult struct {
 	Truncated bool    `json:"truncated"`
 }
 
+type TreeArgs struct {
+	RootID       string `json:"root_id" jsonschema:"configured root id"`
+	Path         string `json:"path,omitempty" jsonschema:"relative directory path inside the root"`
+	MaxDepth     int    `json:"max_depth,omitempty" jsonschema:"maximum tree depth to return"`
+	MaxEntries   int    `json:"max_entries,omitempty" jsonschema:"maximum number of tree entries to return"`
+	IncludeFiles *bool  `json:"include_files,omitempty" jsonschema:"whether to include files in the tree output; defaults to true"`
+}
+
+type TreeEntry struct {
+	Path       string `json:"path"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Depth      int    `json:"depth"`
+	ParentPath string `json:"parent_path,omitempty"`
+	Size       int64  `json:"size,omitempty"`
+	MTime      string `json:"mtime,omitempty"`
+}
+
+type TreeResult struct {
+	Root      TreeEntry   `json:"root"`
+	RootID    string      `json:"root_id"`
+	Path      string      `json:"path"`
+	Entries   []TreeEntry `json:"entries"`
+	Text      string      `json:"text"`
+	Truncated bool        `json:"truncated"`
+}
+
 type ReadArgs struct {
 	RootID string `json:"root_id" jsonschema:"configured root id"`
 	Path   string `json:"path" jsonschema:"relative file path inside the root"`

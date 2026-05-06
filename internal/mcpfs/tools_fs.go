@@ -38,6 +38,20 @@ func RegisterFSTools(server *mcp.Server, svc *fsservice.Service) {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "fs_tree",
+		Description: "Return a bounded tree view under a configured filesystem root. Honors explicit excludes, .gitignore rules, and symlink checks.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args fsservice.TreeArgs) (*mcp.CallToolResult, fsservice.TreeResult, error) {
+		result, err := svc.Tree(ctx, args)
+		if err != nil {
+			return toolError(err), fsservice.TreeResult{}, nil
+		}
+		return toolJSON(result), result, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fs_read",
 		Description: "Read a file from a configured filesystem root. Path must be relative to the selected root. Honors explicit excludes, .gitignore rules, symlink checks, and file size limits.",
 		Annotations: &mcp.ToolAnnotations{
