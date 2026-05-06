@@ -140,19 +140,19 @@ func TestOverviewHonorsMaxEntries(t *testing.T) {
 
 func TestOverviewUsesInjectedRegistry(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "Cloudberry.project", "custom\n")
-	writeFile(t, dir, "main.cloudberry", "source\n")
-	writeFile(t, dir, "main.cloudberry.test", "test\n")
+	writeFile(t, dir, "local.project", "custom\n")
+	writeFile(t, dir, "main.localsrc", "source\n")
+	writeFile(t, dir, "main.localtest", "test\n")
 
 	registry := Registry{
 		Project: ProjectRules{
-			ImportantFiles:          []string{"Cloudberry.project"},
-			SourceExtensions:        []string{".cloudberry"},
-			TestPatterns:            []string{"*.cloudberry.test"},
+			ImportantFiles:          []string{"local.project"},
+			SourceExtensions:        []string{".localsrc"},
+			TestPatterns:            []string{"*.localtest"},
 			DocumentationExtensions: []string{},
 			DocumentationFiles:      []string{},
 			ConfigurationExtensions: []string{},
-			ConfigurationFiles:      []string{"Cloudberry.project"},
+			ConfigurationFiles:      []string{"local.project"},
 		},
 	}
 
@@ -170,8 +170,8 @@ func TestOverviewUsesInjectedRegistry(t *testing.T) {
 		t.Fatalf("Overview returned error: %v", err)
 	}
 
-	if !containsString(result.ImportantFiles, "Cloudberry.project") {
-		t.Fatalf("ImportantFiles = %#v, want Cloudberry.project", result.ImportantFiles)
+	if !containsString(result.ImportantFiles, "local.project") {
+		t.Fatalf("ImportantFiles = %#v, want local.project", result.ImportantFiles)
 	}
 	if result.Counts.SourceFiles != 1 {
 		t.Fatalf("SourceFiles = %d, want 1", result.Counts.SourceFiles)
@@ -181,6 +181,75 @@ func TestOverviewUsesInjectedRegistry(t *testing.T) {
 	}
 	if result.Counts.ConfigurationFiles != 1 {
 		t.Fatalf("ConfigurationFiles = %d, want 1", result.Counts.ConfigurationFiles)
+	}
+}
+
+func TestOverviewUsesProjectLocalRegistryForRoot(t *testing.T) {
+	customDir := t.TempDir()
+	defaultDir := t.TempDir()
+
+	writeFile(t, customDir, "local.project", "custom\n")
+	writeFile(t, customDir, "main.localsrc", "source\n")
+	writeFile(t, customDir, "main.localtest", "test\n")
+	writeFile(t, customDir, ".mcpfs/project.cfg.json", `{
+		"project": {
+			"important_files": ["local.project"],
+			"source_extensions": [".localsrc"],
+			"test_patterns": ["*.localtest"],
+			"configuration_files": ["local.project"]
+		}
+	}`)
+
+	writeFile(t, defaultDir, "local.project", "custom\n")
+	writeFile(t, defaultDir, "main.localsrc", "source\n")
+	writeFile(t, defaultDir, "main.localtest", "test\n")
+
+	roots := makeTestRoots(t,
+		testRootConfig("custom", customDir),
+		testRootConfig("default", defaultDir),
+	)
+
+	fsSvc := fsservice.New(roots, discardLogger())
+	gitSvc := gitservice.New(roots, discardLogger())
+
+	svc, err := NewWithRegistryAndRoots(fsSvc, gitSvc, MustDefaultRegistryForTests(), "", roots, discardLogger())
+	if err != nil {
+		t.Fatalf("NewWithRegistryAndRoots returned error: %v", err)
+	}
+
+	customResult, err := svc.Overview(context.Background(), OverviewArgs{
+		RootID:     "custom",
+		MaxDepth:   2,
+		MaxEntries: 20,
+	})
+	if err != nil {
+		t.Fatalf("Overview(custom) returned error: %v", err)
+	}
+
+	if !containsString(customResult.ImportantFiles, "local.project") {
+		t.Fatalf("custom ImportantFiles = %#v, want local.project", customResult.ImportantFiles)
+	}
+	if customResult.Counts.SourceFiles != 1 {
+		t.Fatalf("custom SourceFiles = %d, want 1", customResult.Counts.SourceFiles)
+	}
+	if customResult.Counts.TestFiles != 1 {
+		t.Fatalf("custom TestFiles = %d, want 1", customResult.Counts.TestFiles)
+	}
+
+	defaultResult, err := svc.Overview(context.Background(), OverviewArgs{
+		RootID:     "default",
+		MaxDepth:   1,
+		MaxEntries: 20,
+	})
+	if err != nil {
+		t.Fatalf("Overview(default) returned error: %v", err)
+	}
+
+	if containsString(defaultResult.ImportantFiles, "local.project") {
+		t.Fatalf("default ImportantFiles = %#v, did not want local.project", defaultResult.ImportantFiles)
+	}
+	if defaultResult.Counts.SourceFiles != 0 {
+		t.Fatalf("default SourceFiles = %d, want 0", defaultResult.Counts.SourceFiles)
 	}
 }
 

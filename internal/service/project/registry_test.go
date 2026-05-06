@@ -28,13 +28,13 @@ func TestLoadOrCreateRegistryLoadsExistingConfig(t *testing.T) {
 
 	data := []byte(`{
 		"project": {
-			"important_files": ["Cloudberry.project"],
-			"source_extensions": [".cloudberry"],
-			"test_patterns": ["*.cloudberry.test"],
+			"important_files": ["local.project"],
+			"source_extensions": [".localsrc"],
+			"test_patterns": ["*.localtest"],
 			"documentation_extensions": [],
 			"documentation_files": [],
 			"configuration_extensions": [],
-			"configuration_files": ["Cloudberry.project"]
+			"configuration_files": ["local.project"]
 		}
 	}`)
 
@@ -50,20 +50,20 @@ func TestLoadOrCreateRegistryLoadsExistingConfig(t *testing.T) {
 		t.Fatalf("LoadOrCreateRegistry returned error: %v", err)
 	}
 
-	if !registry.IsImportantFile("Cloudberry.project") {
-		t.Fatal("Cloudberry.project is not important")
+	if !registry.IsImportantFile("local.project") {
+		t.Fatal("local.project is not important")
 	}
 	if registry.IsImportantFile("README.md") {
 		t.Fatal("README.md should not be important for custom registry")
 	}
-	if !registry.IsSourceFile("main.cloudberry") {
-		t.Fatal("main.cloudberry is not a source file")
+	if !registry.IsSourceFile("main.localsrc") {
+		t.Fatal("main.localsrc is not a source file")
 	}
-	if !registry.IsTestFile("main.cloudberry.test") {
-		t.Fatal("main.cloudberry.test is not a test file")
+	if !registry.IsTestFile("main.localtest") {
+		t.Fatal("main.localtest is not a test file")
 	}
-	if !registry.IsConfigurationFile("Cloudberry.project") {
-		t.Fatal("Cloudberry.project is not a configuration file")
+	if !registry.IsConfigurationFile("local.project") {
+		t.Fatal("local.project is not a configuration file")
 	}
 }
 
@@ -80,5 +80,33 @@ func TestLoadOrCreateRegistryRejectsInvalidJSON(t *testing.T) {
 	_, err := LoadOrCreateRegistry(configPath)
 	if err == nil {
 		t.Fatal("LoadOrCreateRegistry returned nil error")
+	}
+}
+
+func TestRegistryMergeOverlaysNonEmptyProjectRules(t *testing.T) {
+	base := Registry{
+		Project: ProjectRules{
+			ImportantFiles:          []string{"README.md"},
+			SourceExtensions:        []string{".go"},
+			DocumentationExtensions: []string{".md"},
+		},
+	}
+	local := Registry{
+		Project: ProjectRules{
+			ImportantFiles:   []string{"local.project"},
+			SourceExtensions: []string{".localsrc"},
+		},
+	}
+
+	merged := base.Merge(local)
+
+	if !merged.IsImportantFile("local.project") || merged.IsImportantFile("README.md") {
+		t.Fatalf("merged important file rules did not overlay as expected")
+	}
+	if !merged.IsSourceFile("main.localsrc") || merged.IsSourceFile("main.go") {
+		t.Fatalf("merged source extension rules did not overlay as expected")
+	}
+	if !merged.IsDocumentationFile("README.md") {
+		t.Fatalf("empty local documentation rules should inherit base documentation rules")
 	}
 }

@@ -36,7 +36,7 @@ func NewServer(cfg config.Config, logger *slog.Logger) (*Server, error) {
 
 	fsSvc := fsservice.New(roots, logger)
 	gitSvc := gitservice.New(roots, logger)
-	projectSvc, err := projectservice.New(fsSvc, gitSvc, logger)
+	projectSvc, err := projectservice.NewWithRoots(fsSvc, gitSvc, roots, logger)
 	if err != nil {
 		return nil, err
 	}

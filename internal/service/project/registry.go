@@ -11,12 +11,15 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
+
+	"github.com/tedla-brandsema/mcpfs/internal/core"
 )
 
 //go:embed project.cfg.json
 var embeddedProjectConfig []byte
 
 const projectConfigFileName = "project.cfg.json"
+const projectLocalConfigPath = ".mcpfs/project.cfg.json"
 
 type Registry struct {
 	Project ProjectRules `json:"project"`
@@ -74,6 +77,10 @@ func LoadOrCreateRegistry(configPath string) (Registry, error) {
 		}
 	}
 
+	return LoadRegistry(configPath)
+}
+
+func LoadRegistry(configPath string) (Registry, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return Registry{}, fmt.Errorf("read project config: %w", err)
@@ -85,6 +92,49 @@ func LoadOrCreateRegistry(configPath string) (Registry, error) {
 	}
 
 	return registry, nil
+}
+
+func LoadRootRegistry(root *core.Root, base Registry) (Registry, string, bool, error) {
+	if root == nil {
+		return base, "", false, nil
+	}
+
+	configPath := filepath.Join(root.RealPath, filepath.FromSlash(projectLocalConfigPath))
+	if _, err := os.Stat(configPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return base, "", false, nil
+		}
+		return Registry{}, configPath, false, fmt.Errorf("stat project-local config: %w", err)
+	}
+
+	local, err := LoadRegistry(configPath)
+	if err != nil {
+		return Registry{}, configPath, true, err
+	}
+
+	return base.Merge(local), configPath, true, nil
+}
+
+func (r Registry) Merge(local Registry) Registry {
+	out := r
+
+	out.Project.ImportantFiles = overlayRules(out.Project.ImportantFiles, local.Project.ImportantFiles)
+	out.Project.SourceExtensions = overlayRules(out.Project.SourceExtensions, local.Project.SourceExtensions)
+	out.Project.TestPatterns = overlayRules(out.Project.TestPatterns, local.Project.TestPatterns)
+	out.Project.DocumentationExtensions = overlayRules(out.Project.DocumentationExtensions, local.Project.DocumentationExtensions)
+	out.Project.DocumentationFiles = overlayRules(out.Project.DocumentationFiles, local.Project.DocumentationFiles)
+	out.Project.ConfigurationExtensions = overlayRules(out.Project.ConfigurationExtensions, local.Project.ConfigurationExtensions)
+	out.Project.ConfigurationFiles = overlayRules(out.Project.ConfigurationFiles, local.Project.ConfigurationFiles)
+
+	return out
+}
+
+func overlayRules(base []string, local []string) []string {
+	if len(local) == 0 {
+		return append([]string(nil), base...)
+	}
+
+	return append([]string(nil), local...)
 }
 
 func MustDefaultRegistryForTests() Registry {

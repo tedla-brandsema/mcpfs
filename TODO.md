@@ -159,20 +159,20 @@
 
   This should be heuristic and language-agnostic.
 
-* [x] Add global MCPFS config bootstrap.
+* [] Add global MCPFS config bootstrap.
   Embed a default global `mcpfs.cfg.json`, write it to the OS user config directory when missing, then load it from disk.
   This config owns server settings, startup roots, and global root defaults.
 
-## IN PROGRESS
-
-* [ ] Add project-local config support.
+* [x] Add project-local config support.
   Load `.mcpfs/project.cfg.json` from configured roots when present.
   Use it for project overview detection rules and future project-local command/LSP/plugin settings.
 
-## BACKLOG
+## IN PROGRESS
 
 * [ ] Add `mcpfs init`.
   Create `.mcpfs/project.cfg.json` in the current directory and optionally add the project to the global startup roots.
+
+## BACKLOG
 
 * [ ] Add stable location/range types.
   Introduce shared internal/output types for:

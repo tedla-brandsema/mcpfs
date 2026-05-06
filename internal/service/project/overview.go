@@ -40,6 +40,8 @@ func (s *Service) Overview(ctx context.Context, args OverviewArgs) (OverviewResu
 		return OverviewResult{}, err
 	}
 
+	registry := s.registryFor(tree.RootID)
+
 	result := OverviewResult{
 		RootID:     tree.RootID,
 		Path:       tree.Path,
@@ -47,11 +49,11 @@ func (s *Service) Overview(ctx context.Context, args OverviewArgs) (OverviewResu
 		MaxEntries: tree.MaxEntries,
 		TreeText:   tree.Text,
 		TopLevel:   topLevelEntries(tree.Entries),
-		Counts:     s.countEntries(tree.Entries),
+		Counts:     s.countEntries(tree.Entries, registry),
 		Truncated:  tree.Truncated,
 	}
 
-	result.ImportantFiles = s.importantFiles(tree.Entries)
+	result.ImportantFiles = s.importantFiles(tree.Entries, registry)
 
 	status, err := s.git.Status(ctx, gitservice.StatusArgs{
 		RootID: args.RootID,
@@ -115,7 +117,7 @@ func topLevelEntries(entries []fsservice.TreeEntry) []OverviewEntry {
 	return out
 }
 
-func (s *Service) countEntries(entries []fsservice.TreeEntry) OverviewCounts {
+func (s *Service) countEntries(entries []fsservice.TreeEntry, registry Registry) OverviewCounts {
 	var counts OverviewCounts
 	counts.Entries = len(entries)
 
@@ -125,16 +127,16 @@ func (s *Service) countEntries(entries []fsservice.TreeEntry) OverviewCounts {
 			counts.Directories++
 		case "file":
 			counts.Files++
-			if s.registry.IsSourceFile(entry.Path) {
+			if registry.IsSourceFile(entry.Path) {
 				counts.SourceFiles++
 			}
-			if s.registry.IsTestFile(entry.Path) {
+			if registry.IsTestFile(entry.Path) {
 				counts.TestFiles++
 			}
-			if s.registry.IsDocumentationFile(entry.Path) {
+			if registry.IsDocumentationFile(entry.Path) {
 				counts.DocumentationFiles++
 			}
-			if s.registry.IsConfigurationFile(entry.Path) {
+			if registry.IsConfigurationFile(entry.Path) {
 				counts.ConfigurationFiles++
 			}
 		}
@@ -143,7 +145,7 @@ func (s *Service) countEntries(entries []fsservice.TreeEntry) OverviewCounts {
 	return counts
 }
 
-func (s *Service) importantFiles(entries []fsservice.TreeEntry) []string {
+func (s *Service) importantFiles(entries []fsservice.TreeEntry, registry Registry) []string {
 	seen := make(map[string]bool)
 	out := make([]string, 0)
 
@@ -152,7 +154,7 @@ func (s *Service) importantFiles(entries []fsservice.TreeEntry) []string {
 			continue
 		}
 
-		if !s.registry.IsImportantFile(entry.Path) {
+		if !registry.IsImportantFile(entry.Path) {
 			continue
 		}
 
