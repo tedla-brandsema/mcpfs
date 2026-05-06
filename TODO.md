@@ -101,12 +101,7 @@
 
   Useful when diagnostics, search results, or blame results point to specific ranges. 
 
-## IN PROGRESS
-
-
-## BACKLOG
-
-* [ ] Add `git_blame`.
+* [x] Add `git_blame`.
   Return blame information for a file, optionally scoped to a line range.
 
   Suggested input:
@@ -122,6 +117,11 @@
   ```
 
   This is still generic and read-only, but lower priority than `git_show`.
+
+## IN PROGRESS
+
+
+## BACKLOG
 
 * [ ] Add `fs_search_regex`.
   Add regex search as a separate tool rather than overloading substring search.

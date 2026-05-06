@@ -38,6 +38,20 @@ func RegisterGitTools(server *mcp.Server, svc *gitservice.Service) {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "git_blame",
+		Description: "Return read-only git blame information for a file, optionally scoped to a 1-based inclusive line range.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args gitservice.BlameArgs) (*mcp.CallToolResult, gitservice.BlameResult, error) {
+		result, err := svc.Blame(ctx, args)
+		if err != nil {
+			return toolError(err), gitservice.BlameResult{}, nil
+		}
+		return toolJSON(result), result, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "git_show",
 		Description: "Return read-only metadata and patch for a single git commit. Optionally restrict the patch to a relative path.",
 		Annotations: &mcp.ToolAnnotations{
