@@ -15,11 +15,20 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
+
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "init":
+			os.Exit(runInit(os.Args[2:], logger))
+		case "project":
+			os.Exit(runProject(os.Args[2:], logger))
+		}
+	}
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to mcpfs config file; defaults to the global user config")
 	flag.Parse()
-
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
 
 	cfg, resolvedConfigPath, err := config.LoadOrCreate(configPath)
 	if err != nil {

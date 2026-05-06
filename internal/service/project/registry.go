@@ -145,6 +145,26 @@ func MustDefaultRegistryForTests() Registry {
 	return registry
 }
 
+func DefaultConfigBytes() []byte {
+	return append([]byte(nil), embeddedProjectConfig...)
+}
+
+func WriteDefaultRegistryConfig(path string) error {
+	if path == "" {
+		return fmt.Errorf("config path is required")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create project config dir: %w", err)
+	}
+
+	if err := os.WriteFile(path, embeddedProjectConfig, 0o644); err != nil {
+		return fmt.Errorf("write project config: %w", err)
+	}
+
+	return nil
+}
+
 func (r Registry) IsImportantFile(rel string) bool {
 	return matchFileRules(rel, r.Project.ImportantFiles)
 }
