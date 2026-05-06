@@ -70,18 +70,16 @@
   * root escape rejection
   * deterministic ordering
 
-## IN PROGRESS
-
-
-
-## BACKLOG
-
-* [ ] Add README documentation for `fs_tree` and `git_show`.
+* [x] Add README documentation for `fs_tree` and `git_show`.
   Include the tools in the MCP tools table and add example workflow snippets.
+
+## IN PROGRESS
 
 * [ ] Add a shared truncation/result-limit helper.
   Several tools already need bounded output.
   Centralize max bytes / max entries behavior so future tools behave consistently.
+
+## BACKLOG
 
 * [ ] Add a shared path-scoped git helper.
   `git_diff`, `git_log`, and `git_show` should use a common helper for:
@@ -311,11 +309,3 @@
 * [ ] Add language-specific plugin SDKs.
   Start with Go SDK.
   Keep the wire protocol language-neutral through protobuf/gRPC.
-
-## Suggested first sequence
-
-* [ ] Add `fs_tree`.
-* [ ] Add tests for `fs_tree`.
-* [ ] Add `git_show`.
-* [ ] Add tests for `git_show`.
-* [ ] Add README documentation for `fs_tree` and `git_show`.

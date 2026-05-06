@@ -2,7 +2,7 @@
 
 `mcpfs` is a small, read-only Model Context Protocol filesystem server.
 
-It lets an MCP client inspect explicitly configured project folders without uploading files or copying snippets into chat. It is designed for live developer context: list files, read files, search source, inspect Git status, view diffs, and review recent commit history.
+It lets an MCP client inspect explicitly configured project folders without uploading files or copying snippets into chat. It is designed for live developer context: list files, view bounded project trees, read files, search source, inspect Git status, view diffs, inspect commits, and review recent commit history.
 
 The core idea is simple:
 
@@ -24,6 +24,7 @@ configured roots
 * Root escape protection.
 * Symlink escape protection.
 * File size limits.
+* Bounded directory listing and tree output.
 * Structured JSON logging.
 * STDIO transport for local MCP hosts and MCP Inspector.
 * Streamable HTTP transport for remote MCP clients.
@@ -35,6 +36,7 @@ configured roots
 
   * `git_status`
   * `git_diff`
+  * `git_show`
   * `git_log`
 
 ## MCP tools
@@ -43,13 +45,14 @@ All exposed tools are read-only and are annotated with MCP `readOnlyHint`.
 
 Filesystem tools:
 
-| Tool        | Description                                         |
-| ----------- | --------------------------------------------------- |
-| `fs_roots`  | List configured filesystem roots.                   |
-| `fs_list`   | List files and directories under a configured root. |
-| `fs_read`   | Read a file under a configured root.                |
-| `fs_search` | Search text files under a configured root.          |
-| `fs_stat`   | Return metadata for a file or directory.            |
+| Tool        | Description                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| `fs_roots`  | List configured filesystem roots.                                                                 |
+| `fs_list`   | List files and directories under a configured root.                                               |
+| `fs_tree`   | Return a bounded tree view under a configured root, including structured entries and text output. |
+| `fs_read`   | Read a file under a configured root.                                                              |
+| `fs_search` | Search text files under a configured root.                                                        |
+| `fs_stat`   | Return metadata for a file or directory.                                                          |
 
 Git tools:
 
@@ -57,6 +60,7 @@ Git tools:
 | ------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `git_status` | Return `git status --porcelain=v1 -b` as structured JSON.                                                           |
 | `git_diff`   | Return a diff for the whole root or a specific path. Supports staged diffs and synthetic diffs for untracked files. |
+| `git_show`   | Return metadata and patch output for a single commit, optionally scoped to a path.                                  |
 | `git_log`    | Return recent commit history, optionally scoped to a path.                                                          |
 
 ## Security model
@@ -395,6 +399,24 @@ List project files:
 }
 ```
 
+Call `fs_list`.
+
+View a bounded project tree:
+
+```json
+{
+  "root_id": "project",
+  "path": ".",
+  "max_depth": 3,
+  "max_entries": 300,
+  "include_files": true
+}
+```
+
+Call `fs_tree`.
+
+`fs_tree` returns a flat structured `entries` list and a compact `text` tree. The structured entries include path, name, type, depth, parent path, size, and modification time.
+
 Search code:
 
 ```json
@@ -405,6 +427,8 @@ Search code:
 }
 ```
 
+Call `fs_search`.
+
 Read a file:
 
 ```json
@@ -413,6 +437,8 @@ Read a file:
   "path": "internal/core/resolve.go"
 }
 ```
+
+Call `fs_read`.
 
 Check working tree state:
 
@@ -434,6 +460,33 @@ Inspect a changed file:
 ```
 
 Call `git_diff`.
+
+Inspect a commit:
+
+```json
+{
+  "root_id": "project",
+  "rev": "HEAD",
+  "max_bytes": 65536
+}
+```
+
+Call `git_show`.
+
+Inspect a commit scoped to a path:
+
+```json
+{
+  "root_id": "project",
+  "rev": "HEAD~1",
+  "path": "internal/service/git/show.go",
+  "max_bytes": 65536
+}
+```
+
+Call `git_show`.
+
+`git_show` resolves the requested revision to a single commit and returns commit metadata plus bounded patch output. The revision must not be empty, start with `-`, or contain leading/trailing whitespace.
 
 Review history:
 
@@ -485,19 +538,6 @@ Run with embedded ngrok:
 export NGROK_AUTHTOKEN="<your-ngrok-authtoken>"
 ./scripts/run-ngrok.sh
 ```
-
-## Publishing checklist
-
-Before pushing to GitHub:
-
-```bash
-go test ./...
-git status
-git grep -nE 'NGROK_AUTHTOKEN|MCPFS_TOKEN|Bearer |ngrok-free|password|secret|credential|BEGIN .*PRIVATE KEY|api[_-]?key'
-git status --ignored --short
-```
-
-Also check that example configs contain only placeholder values.
 
 ## Status
 
