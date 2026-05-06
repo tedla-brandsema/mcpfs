@@ -167,8 +167,9 @@
   Load `.mcpfs/project.cfg.json` from configured roots when present.
   Use it for project overview detection rules and future project-local command/LSP/plugin settings.
 
-* [x] Add `mcpfs init`.
-  Create `.mcpfs/project.cfg.json` in the current directory and optionally add the project to the global startup roots.
+* [x] Add `mcpfs init` and `mcpfs project`.
+  `mcpfs init` creates `.mcpfs/project.cfg.json` for a project.
+  `mcpfs project add|rm|ls` manages configured project roots in an MCPFS config.
 
 ## IN PROGRESS
 

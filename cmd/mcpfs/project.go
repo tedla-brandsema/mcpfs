@@ -69,6 +69,9 @@ func runProjectAdd(args []string, logger *slog.Logger) int {
 func runProjectRemove(args []string, logger *slog.Logger) int {
 	ctx, err := parseProjectContext("project rm", args, true, true)
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
@@ -92,6 +95,9 @@ func runProjectRemove(args []string, logger *slog.Logger) int {
 func runProjectList(args []string, logger *slog.Logger) int {
 	ctx, err := parseProjectContext("project ls", args, false, false)
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
