@@ -1,8 +1,8 @@
 # mcpfs
 
-`mcpfs` is a small, read-only Model Context Protocol filesystem server for working with local project folders from an MCP client.
+`mcpfs` is a Model Context Protocol server for exposing local project context and controlled project operations to MCP clients.
 
-It lets an MCP client inspect explicitly configured project roots without uploading files or manually copying snippets into chat. It is designed for live developer context: list files, view bounded project trees, read files and line ranges, search source, inspect Git status and diffs, review commits, inspect blame, and get compact project overviews.
+It lets an MCP client work with explicitly configured project roots without uploading files or manually copying snippets into chat. It is designed for live developer context: list files, view bounded project trees, read files and line ranges, search source, inspect Git status and diffs, review commits, inspect blame, get compact project overviews, and optionally write files when a root is explicitly configured as writable.
 
 The core idea is simple:
 
@@ -10,8 +10,8 @@ The core idea is simple:
 configured roots
   → safe path resolver
   → .gitignore-aware matcher
-  → read-only filesystem tools
-  → read-only git inspection tools
+  → filesystem tools
+  → git inspection tools
   → project overview tools
   → MCP
 ```
@@ -21,12 +21,13 @@ configured roots
 * Explicit JSON-configured filesystem roots.
 * Global config bootstrap from an embedded default config.
 * Project-local config support through `.mcpfs/project.cfg.json`.
-* Read-only filesystem access.
+* Read access by default.
+* Write access through explicit per-root `read_write` opt-in.
 * `.gitignore` support.
 * Additional include/exclude glob rules.
 * Root escape protection.
-* Symlink escape protection.
-* File size limits.
+* Symlink escape protection, including writable-path parent checks.
+* File size limits for reads and writes.
 * Bounded directory listing and tree output.
 * Structured JSON logging.
 * STDIO transport for local MCP hosts and MCP Inspector.
@@ -34,7 +35,6 @@ configured roots
 * Optional embedded ngrok tunnel for quick remote development.
 * HTTP auth modes: `none`, `bearer`, and `oidc`.
 * OIDC/JWT validation using JWKS, issuer, audience, expiry, not-before, and identity allowlists.
-* MCP tool annotations mark exposed tools as read-only.
 * CLI project setup and root management:
 
   * `mcpfs init`
@@ -44,20 +44,19 @@ configured roots
 
 ## MCP tools
 
-All exposed tools are read-only and are annotated with MCP `readOnlyHint`.
-
 Filesystem tools:
 
-| Tool              | Description                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------- |
-| `fs_roots`        | List configured filesystem roots and their read modes. Does not expose absolute host paths. |
-| `fs_list`         | List files under a configured root. Honors explicit excludes and `.gitignore` rules.        |
-| `fs_tree`         | Return a bounded tree view with structured entries and compact text output.                 |
-| `fs_read`         | Read a bounded file from a configured root.                                                 |
-| `fs_read_lines`   | Read a 1-based inclusive line range from a file.                                            |
-| `fs_search`       | Search text files using a case-sensitive substring query.                                   |
-| `fs_search_regex` | Search text files using a regular expression query.                                         |
-| `fs_stat`         | Return metadata for a file or directory.                                                    |
+| Tool              | Description                                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `fs_roots`        | List configured filesystem roots and their modes. Does not expose absolute host paths.                      |
+| `fs_list`         | List files under a configured root. Honors explicit excludes and `.gitignore` rules.                        |
+| `fs_tree`         | Return a bounded tree view with structured entries and compact text output.                                 |
+| `fs_read`         | Read a bounded file from a configured root.                                                                 |
+| `fs_read_lines`   | Read a 1-based inclusive line range from a file.                                                            |
+| `fs_write`        | Create or replace a file under a configured `read_write` root. Honors excludes, `.gitignore`, and limits.   |
+| `fs_search`       | Search text files using a case-sensitive substring query.                                                   |
+| `fs_search_regex` | Search text files using a regular expression query.                                                         |
+| `fs_stat`         | Return metadata for a file or directory.                                                                    |
 
 Git tools:
 
@@ -75,9 +74,9 @@ Project tools:
 | ------------------ | ------------------------------------------------------------------------------------------------ |
 | `project_overview` | Return a compact project summary: tree, important files, counts, git status, and recent commits. |
 
-## Security model
+## Permission model
 
-`mcpfs` is designed to expose only the authority you explicitly configure.
+`mcpfs` exposes only the roots and capabilities you configure.
 
 Tool paths are always interpreted relative to a configured root. `mcpfs` rejects:
 
@@ -88,7 +87,19 @@ Tool paths are always interpreted relative to a configured root. `mcpfs` rejects
 * `.gitignore` ignored paths
 * files larger than the configured root limit
 
-`.gitignore` support is an additional policy layer. It never weakens the root boundary.
+Filesystem write access is opt-in per root. A root with:
+
+```json
+"mode": "read"
+```
+
+can be inspected but not written. A root with:
+
+```json
+"mode": "read_write"
+```
+
+allows `fs_write`, subject to the same root boundary, include/exclude, `.gitignore`, symlink, and size-limit checks.
 
 The HTTP transports support three auth modes:
 
@@ -96,9 +107,7 @@ The HTTP transports support three auth modes:
 * `bearer` — static bearer token loaded from an environment variable.
 * `oidc` — JWT/OIDC validation using a configured issuer, audience, JWKS URL, and identity allowlist.
 
-All MCP tools are read-only. No write tools are exposed.
-
-Do not expose `mcpfs` to the public internet without understanding what roots you configured and which auth mode is active.
+Do not expose `mcpfs` to the public internet without understanding what roots you configured, which roots are writable, and which auth mode is active.
 
 ## Installation
 
@@ -223,6 +232,8 @@ Flags:
 | `-cfg`  | MCPFS config path to update. Defaults to the global user config. |
 
 The added root uses read mode, `**/*` includes, the standard sensitive-file excludes, `.gitignore` support, and the default max file size.
+
+To allow writes, change the root's `mode` from `read` to `read_write` in the target config.
 
 ### `mcpfs project rm`
 
@@ -355,9 +366,7 @@ Example config using bearer auth:
       "id": "project",
       "path": "/path/to/project",
       "mode": "read",
-      "include": [
-        "**/*"
-      ],
+      "include": ["**/*"],
       "exclude": [
         "**/.git/**",
         "**/.env",
@@ -506,15 +515,15 @@ The global config controls server settings and roots.
 
 Root config fields:
 
-| Field            | Description                                                        |
-| ---------------- | ------------------------------------------------------------------ |
-| `id`             | Stable root identifier used by MCP tools.                          |
-| `path`           | Local filesystem path to expose.                                   |
-| `mode`           | Currently accepts `read` or `read_write`, but tools are read-only. |
-| `include`        | Glob allowlist. Empty means all files not excluded are allowed.    |
-| `exclude`        | Glob denylist.                                                     |
-| `use_gitignore`  | Apply `.gitignore` rules as an additional deny/allow layer.        |
-| `max_file_bytes` | Maximum readable file size. Defaults to `262144` when set to `0`.  |
+| Field            | Description                                                                   |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `id`             | Stable root identifier used by MCP tools.                                     |
+| `path`           | Local filesystem path to expose.                                              |
+| `mode`           | `read` or `read_write`. `read_write` enables `fs_write` for that root.        |
+| `include`        | Glob allowlist. Empty means all files not excluded are allowed.               |
+| `exclude`        | Glob denylist.                                                                |
+| `use_gitignore`  | Apply `.gitignore` rules as an additional deny/allow layer.                   |
+| `max_file_bytes` | Maximum readable or writable file size. Defaults to `262144` when set to `0`. |
 
 Server config fields:
 
@@ -662,6 +671,19 @@ Read a line range:
 ```
 
 Call `fs_read_lines`.
+
+Write a file under a writable root:
+
+```json
+{
+  "root_id": "project",
+  "path": "notes/example.md",
+  "content": "# Example\n",
+  "create_dirs": true
+}
+```
+
+Call `fs_write`. The root must be configured with `"mode": "read_write"`.
 
 Search code with a substring:
 
@@ -823,6 +845,4 @@ export NGROK_AUTHTOKEN="<your-ngrok-authtoken>"
 
 ## Status
 
-`mcpfs` is currently read-only. The `mode` field accepts `read_write` for future compatibility, but no write tools are exposed.
-
-The exposed MCP tools are annotated as read-only.
+`mcpfs` currently focuses on filesystem, Git, and project-context tools. Roots are read-only by default. File writes are available through `fs_write` only for roots explicitly configured with `mode: "read_write"`.

@@ -84,7 +84,7 @@
   * resolving paths inside roots
   * appending `-- path`
   * handling git command limits/errors
- 
+
 * [x] Add `fs_read_lines`.
   Read a specific line range from a file.
 
@@ -99,7 +99,7 @@
   }
   ```
 
-  Useful when diagnostics, search results, or blame results point to specific ranges. 
+  Useful when diagnostics, search results, or blame results point to specific ranges.
 
 * [x] Add `git_blame`.
   Return blame information for a file, optionally scoped to a line range.
@@ -171,6 +171,11 @@
   `mcpfs init` creates `.mcpfs/project.cfg.json` for a project.
   `mcpfs project add|rm|ls` manages configured project roots in an MCPFS config.
 
+* [x] Add opt-in filesystem write support.
+  Add `fs_write` for creating or replacing files under configured roots with `mode: "read_write"`.
+  Keep roots read-only by default and reject writes for `mode: "read"` roots.
+  Reuse root boundary checks, include/exclude rules, `.gitignore`, symlink protection, and `max_file_bytes` for writes.
+
 ## IN PROGRESS
 
 ## BACKLOG
@@ -188,7 +193,7 @@
 
   These will be useful before adding LSP support.
 
-* [ ] Add optional command execution framework for explicitly allowed read-only/dev commands.
+* [ ] Add optional command execution framework for explicitly allowed dev commands.
   Keep disabled by default.
 
   This is preparation for tools such as test summaries or external analyzers.
@@ -321,4 +326,3 @@
 * [ ] Add language-specific plugin SDKs.
   Start with Go SDK.
   Keep the wire protocol language-neutral through protobuf/gRPC.
-  
