@@ -232,7 +232,7 @@ func parseGitignoreFile(filename string, base string, serial *int) ([]gitignoreR
 		if strings.HasPrefix(line, "!") {
 			negated = true
 			line = strings.TrimPrefix(line, "!")
-			}
+		}
 
 		line = strings.TrimSpace(line)
 		if line == "" {

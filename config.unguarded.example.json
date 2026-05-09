@@ -2,21 +2,18 @@
   "server": {
     "name": "mcpfs",
     "version": "0.4.0",
-    "transport": "stdio"
+    "transport": "stdio",
+    "auth": {
+      "mode": "none"
+    }
   },
   "roots": [
     {
-      "id": "mcpfs",
-      "path": ".",
-      "mode": "read",
+      "id": "project",
+      "path": "/path/to/project",
+      "mode": "read_write",
       "include": [
-        "**/*.go",
-        "**/*.md",
-        "**/*.mod",
-        "**/*.sum",
-        "**/*.json",
-        "**/*.yaml",
-        "**/*.yml"
+        "**/*"
       ],
       "exclude": [
         "**/.git/**",
@@ -40,6 +37,10 @@
     }
   ],
   "commands": {
-    "mode": "disabled"
+    "mode": "unguarded",
+    "defaults": {
+      "timeout_seconds": 60,
+      "max_output_bytes": 65536
+    }
   }
 }

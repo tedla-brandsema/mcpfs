@@ -203,7 +203,7 @@ The embedded default global config starts with STDIO transport and no roots:
 {
   "server": {
     "name": "mcpfs",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "transport": "stdio",
     "auth": {
       "mode": "none"
@@ -389,7 +389,7 @@ Example config using bearer auth:
 {
   "server": {
     "name": "mcpfs",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "transport": "http",
     "addr": "127.0.0.1:8080",
     "path": "/mcp",
@@ -458,7 +458,7 @@ Example config:
 {
   "server": {
     "name": "mcpfs",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "transport": "http",
     "addr": "127.0.0.1:8080",
     "path": "/mcp",

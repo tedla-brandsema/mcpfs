@@ -51,15 +51,15 @@ func NewRoot(cfg config.RootConfig, logger *slog.Logger) (*Root, error) {
 		return nil, fmt.Errorf("create matcher for root %q: %w", cfg.ID, err)
 	}
 
-return &Root{
-	ID:           cfg.ID,
-	Path:         abs,
-	RealPath:     realPath,
-	Mode:         cfg.Mode,
-	MaxFileBytes: maxFileBytes,
-	Matcher:      matcher,
-	ReadFS:       os.DirFS(realPath),
-}, nil
+	return &Root{
+		ID:           cfg.ID,
+		Path:         abs,
+		RealPath:     realPath,
+		Mode:         cfg.Mode,
+		MaxFileBytes: maxFileBytes,
+		Matcher:      matcher,
+		ReadFS:       os.DirFS(realPath),
+	}, nil
 }
 
 func (r *Root) Rel(abs string) (string, error) {
