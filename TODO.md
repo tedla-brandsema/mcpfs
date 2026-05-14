@@ -196,7 +196,30 @@
 
   `unguarded` mode is intentionally a power-user mode. Treat it like terminal access.
 
+* [x] Add `fs_patch`.
+  Add exact old/new text replacement for existing files under writable roots.
+  This gives agents a lower-blast-radius alternative to full-file rewrites.
+
+  Includes:
+
+  * multiple edits per file
+  * exact-once match requirement for each old block
+  * all-or-nothing application
+  * dry-run diff previews
+  * root mode, include/exclude, `.gitignore`, symlink, and max-file-size checks
+
 ## IN PROGRESS
+
+* [ ] Add optimistic concurrency for filesystem writes and patches.
+  Add `fs_hash` and `expected_sha256` guards so agents can verify they are editing the file version they inspected.
+
+  Include:
+
+  * `fs_hash` returning SHA-256, size, mtime, and mode metadata.
+  * `expected_sha256` on `fs_write`.
+  * `expected_sha256` on `fs_patch`.
+  * tests for matching hash, mismatched hash, missing files, read-only roots, excluded paths, and normal unguarded behavior when the guard is omitted.
+  * README/docs updates for the guarded edit workflow.
 
 ## BACKLOG
 
