@@ -412,6 +412,138 @@ func TestPatchMultiEditFailureIsAtomic(t *testing.T) {
 	}
 }
 
+func TestPatchDiffUsesLocalizedHunks(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "hello.txt", strings.Join([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"line 7",
+		"line 8",
+		"line 9",
+		"line 10",
+		"",
+	}, "\n"))
+
+	cfg := testRootConfig("repo", dir)
+	cfg.Mode = config.ModeReadWrite
+
+	svc := newTestService(t, cfg)
+
+	result, err := svc.Patch(context.Background(), PatchArgs{
+		RootID:           "repo",
+		Path:             "hello.txt",
+		DryRun:           true,
+		DiffContextLines: 1,
+		Edits: []PatchEdit{
+			{Old: "line 5", New: "LINE 5"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Patch returned error: %v", err)
+	}
+
+	if result.DiffContextLines != 1 {
+		t.Fatalf("DiffContextLines = %d, want 1", result.DiffContextLines)
+	}
+	if !strings.Contains(result.Diff, "@@ -4,3 +4,3 @@\n") {
+		t.Fatalf("Diff = %q, want localized hunk header", result.Diff)
+	}
+	if !strings.Contains(result.Diff, " line 4\n-line 5\n+LINE 5\n line 6\n") {
+		t.Fatalf("Diff = %q, want one context line around change", result.Diff)
+	}
+	if strings.Contains(result.Diff, "line 1") || strings.Contains(result.Diff, "line 10") {
+		t.Fatalf("Diff = %q, want distant unchanged lines omitted", result.Diff)
+	}
+}
+
+func TestPatchDiffDefaultsToThreeContextLines(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "hello.txt", strings.Join([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"line 7",
+		"line 8",
+		"line 9",
+		"line 10",
+		"",
+	}, "\n"))
+
+	cfg := testRootConfig("repo", dir)
+	cfg.Mode = config.ModeReadWrite
+
+	svc := newTestService(t, cfg)
+
+	result, err := svc.Patch(context.Background(), PatchArgs{
+		RootID: "repo",
+		Path:   "hello.txt",
+		DryRun: true,
+		Edits: []PatchEdit{
+			{Old: "line 5", New: "LINE 5"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Patch returned error: %v", err)
+	}
+
+	if result.DiffContextLines != 3 {
+		t.Fatalf("DiffContextLines = %d, want 3", result.DiffContextLines)
+	}
+	if !strings.Contains(result.Diff, "@@ -2,7 +2,7 @@\n") {
+		t.Fatalf("Diff = %q, want default context hunk header", result.Diff)
+	}
+	if !strings.Contains(result.Diff, " line 2\n line 3\n line 4\n-line 5\n+LINE 5\n line 6\n line 7\n line 8\n") {
+		t.Fatalf("Diff = %q, want three context lines around change", result.Diff)
+	}
+}
+
+func TestPatchDiffMergesNearbyHunks(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "hello.txt", strings.Join([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"line 7",
+		"",
+	}, "\n"))
+
+	cfg := testRootConfig("repo", dir)
+	cfg.Mode = config.ModeReadWrite
+
+	svc := newTestService(t, cfg)
+
+	result, err := svc.Patch(context.Background(), PatchArgs{
+		RootID:           "repo",
+		Path:             "hello.txt",
+		DryRun:           true,
+		DiffContextLines: 1,
+		Edits: []PatchEdit{
+			{Old: "line 3", New: "LINE 3"},
+			{Old: "line 5", New: "LINE 5"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Patch returned error: %v", err)
+	}
+
+	if got := strings.Count(result.Diff, "@@ "); got != 1 {
+		t.Fatalf("hunk count = %d, want 1; diff = %q", got, result.Diff)
+	}
+	if !strings.Contains(result.Diff, "-line 3\n+LINE 3\n") || !strings.Contains(result.Diff, "-line 5\n+LINE 5\n") {
+		t.Fatalf("Diff = %q, want both changes", result.Diff)
+	}
+}
+
 func TestPatchTruncatesDiff(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "hello.txt", "hello world\n")

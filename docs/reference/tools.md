@@ -13,7 +13,7 @@ MCPFS registers tools based on the configured capabilities.
 | `fs_read_lines` | Read a 1-based inclusive line range from a file. |
 | `fs_hash` | Return SHA-256, size, mtime, and mode metadata for a file. Useful for guarded writes and patches. |
 | `fs_write` | Create or replace a file under a configured `read_write` root. Honors excludes, `.gitignore`, symlink checks, and limits. Supports optional `expected_sha256`. |
-| `fs_patch` | Apply exact old/new text replacements under a configured `read_write` root. Each old block must match exactly once. Supports dry-run previews and optional `expected_sha256`. |
+| `fs_patch` | Apply exact old/new text replacements under a configured `read_write` root. Each old block must match exactly once. Supports localized dry-run diff previews, optional `diff_context_lines`, and optional `expected_sha256`. |
 | `fs_search` | Search text files using a case-sensitive substring query. |
 | `fs_search_regex` | Search text files using a regular expression query. |
 | `fs_stat` | Return metadata for a file or directory. |
@@ -78,6 +78,8 @@ Use the returned `sha256` as `expected_sha256` on `fs_write` or `fs_patch` to pr
 ```
 
 If the file changed in between, MCPFS rejects the write or patch instead of applying it to a stale file.
+
+`fs_patch` returns a localized unified diff preview. Use `diff_context_lines` to control how many unchanged lines are included around each changed hunk. The default is `3`.
 
 ## Related docs
 

@@ -97,12 +97,13 @@ type WriteResult struct {
 }
 
 type PatchArgs struct {
-	RootID         string      `json:"root_id" jsonschema:"configured root id"`
-	Path           string      `json:"path" jsonschema:"relative file path inside the root"`
-	Edits          []PatchEdit `json:"edits" jsonschema:"exact old/new text replacements to apply atomically"`
-	DryRun         bool        `json:"dry_run,omitempty" jsonschema:"preview the patch without writing the file"`
-	MaxDiffBytes   int         `json:"max_diff_bytes,omitempty" jsonschema:"maximum diff preview bytes to return"`
-	ExpectedSHA256 string      `json:"expected_sha256,omitempty" jsonschema:"optional SHA-256 hash the existing file must match before patching"`
+	RootID           string      `json:"root_id" jsonschema:"configured root id"`
+	Path             string      `json:"path" jsonschema:"relative file path inside the root"`
+	Edits            []PatchEdit `json:"edits" jsonschema:"exact old/new text replacements to apply atomically"`
+	DryRun           bool        `json:"dry_run,omitempty" jsonschema:"preview the patch without writing the file"`
+	MaxDiffBytes     int         `json:"max_diff_bytes,omitempty" jsonschema:"maximum diff preview bytes to return"`
+	DiffContextLines int         `json:"diff_context_lines,omitempty" jsonschema:"number of unchanged context lines to include around diff hunks; defaults to 3"`
+	ExpectedSHA256   string      `json:"expected_sha256,omitempty" jsonschema:"optional SHA-256 hash the existing file must match before patching"`
 }
 
 type PatchEdit struct {
@@ -111,17 +112,18 @@ type PatchEdit struct {
 }
 
 type PatchResult struct {
-	RootID        string `json:"root_id"`
-	Path          string `json:"path"`
-	Mode          string `json:"mode"`
-	DryRun        bool   `json:"dry_run"`
-	Changed       bool   `json:"changed"`
-	EditsApplied  int    `json:"edits_applied"`
-	BytesBefore   int    `json:"bytes_before"`
-	BytesAfter    int    `json:"bytes_after"`
-	MaxDiffBytes  int    `json:"max_diff_bytes"`
-	Diff          string `json:"diff"`
-	DiffTruncated bool   `json:"diff_truncated"`
+	RootID           string `json:"root_id"`
+	Path             string `json:"path"`
+	Mode             string `json:"mode"`
+	DryRun           bool   `json:"dry_run"`
+	Changed          bool   `json:"changed"`
+	EditsApplied     int    `json:"edits_applied"`
+	BytesBefore      int    `json:"bytes_before"`
+	BytesAfter       int    `json:"bytes_after"`
+	MaxDiffBytes     int    `json:"max_diff_bytes"`
+	DiffContextLines int    `json:"diff_context_lines"`
+	Diff             string `json:"diff"`
+	DiffTruncated    bool   `json:"diff_truncated"`
 }
 
 type ReadLinesArgs struct {

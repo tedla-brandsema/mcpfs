@@ -12,7 +12,10 @@ import (
 	"github.com/tedla-brandsema/mcpfs/internal/limits"
 )
 
-const defaultPatchDiffBytes = 65536
+const (
+	defaultPatchDiffBytes        = 65536
+	defaultPatchDiffContextLines = 3
+)
 
 func (s *Service) Patch(ctx context.Context, args PatchArgs) (PatchResult, error) {
 	_ = ctx
@@ -99,7 +102,12 @@ func (s *Service) Patch(ctx context.Context, args PatchArgs) (PatchResult, error
 		maxDiffBytes = defaultPatchDiffBytes
 	}
 
-	diff := buildSimpleUnifiedDiff(rel, before, after)
+	diffContextLines := args.DiffContextLines
+	if diffContextLines <= 0 {
+		diffContextLines = defaultPatchDiffContextLines
+	}
+
+	diff := buildUnifiedDiff(rel, before, after, diffContextLines)
 	diffText, diffTruncated := limits.CapStringBytes(diff, maxDiffBytes)
 
 	changed := before != after
@@ -111,17 +119,18 @@ func (s *Service) Patch(ctx context.Context, args PatchArgs) (PatchResult, error
 	}
 
 	result := PatchResult{
-		RootID:        root.ID,
-		Path:          rel,
-		Mode:          string(root.Mode),
-		DryRun:        args.DryRun,
-		Changed:       changed,
-		EditsApplied:  editsApplied,
-		BytesBefore:   len(before),
-		BytesAfter:    len(after),
-		MaxDiffBytes:  maxDiffBytes,
-		Diff:          diffText,
-		DiffTruncated: diffTruncated,
+		RootID:           root.ID,
+		Path:             rel,
+		Mode:             string(root.Mode),
+		DryRun:           args.DryRun,
+		Changed:          changed,
+		EditsApplied:     editsApplied,
+		BytesBefore:      len(before),
+		BytesAfter:       len(after),
+		MaxDiffBytes:     maxDiffBytes,
+		DiffContextLines: diffContextLines,
+		Diff:             diffText,
+		DiffTruncated:    diffTruncated,
 	}
 
 	s.logAllowed("mcpfs.patch", root.ID, rel, "edits_applied", result.EditsApplied, "changed", result.Changed, "dry_run", result.DryRun)
@@ -150,8 +159,34 @@ func applyPatchEdits(content string, edits []PatchEdit) (string, int, error) {
 	return patched, len(edits), nil
 }
 
-func buildSimpleUnifiedDiff(path string, before string, after string) string {
+type diffOpKind int
+
+const (
+	diffOpEqual diffOpKind = iota
+	diffOpDelete
+	diffOpInsert
+)
+
+type diffOp struct {
+	kind    diffOpKind
+	text    string
+	oldLine int
+	newLine int
+}
+
+func buildUnifiedDiff(path string, before string, after string, contextLines int) string {
 	if before == after {
+		return ""
+	}
+	if contextLines < 0 {
+		contextLines = 0
+	}
+
+	beforeLines := splitPatchLines(before)
+	afterLines := splitPatchLines(after)
+	ops := lineDiffOps(beforeLines, afterLines)
+	hunks := diffHunks(ops, contextLines)
+	if len(hunks) == 0 {
 		return ""
 	}
 
@@ -163,20 +198,138 @@ func buildSimpleUnifiedDiff(path string, before string, after string) string {
 	b.WriteString(path)
 	b.WriteString("\n")
 
-	beforeLines := splitPatchLines(before)
-	afterLines := splitPatchLines(after)
-	b.WriteString(fmt.Sprintf("@@ -1,%d +1,%d @@\n", len(beforeLines), len(afterLines)))
+	for _, hunk := range hunks {
+		oldStart, oldCount, newStart, newCount := hunkHeader(ops[hunk.start:hunk.end])
+		b.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", oldStart, oldCount, newStart, newCount))
 
-	for _, line := range beforeLines {
-		b.WriteString("-")
-		b.WriteString(line)
-	}
-	for _, line := range afterLines {
-		b.WriteString("+")
-		b.WriteString(line)
+		for _, op := range ops[hunk.start:hunk.end] {
+			switch op.kind {
+			case diffOpEqual:
+				b.WriteString(" ")
+			case diffOpDelete:
+				b.WriteString("-")
+			case diffOpInsert:
+				b.WriteString("+")
+			}
+			b.WriteString(op.text)
+		}
 	}
 
 	return b.String()
+}
+
+func lineDiffOps(before []string, after []string) []diffOp {
+	n := len(before)
+	m := len(after)
+
+	dp := make([][]int, n+1)
+	for i := range dp {
+		dp[i] = make([]int, m+1)
+	}
+
+	for i := n - 1; i >= 0; i-- {
+		for j := m - 1; j >= 0; j-- {
+			if before[i] == after[j] {
+				dp[i][j] = dp[i+1][j+1] + 1
+			} else if dp[i+1][j] >= dp[i][j+1] {
+				dp[i][j] = dp[i+1][j]
+			} else {
+				dp[i][j] = dp[i][j+1]
+			}
+		}
+	}
+
+	ops := make([]diffOp, 0, n+m)
+	oldLine := 1
+	newLine := 1
+	for i, j := 0, 0; i < n || j < m; {
+		switch {
+		case i < n && j < m && before[i] == after[j]:
+			ops = append(ops, diffOp{kind: diffOpEqual, text: before[i], oldLine: oldLine, newLine: newLine})
+			i++
+			j++
+			oldLine++
+			newLine++
+		case j < m && (i == n || dp[i][j+1] > dp[i+1][j]):
+			ops = append(ops, diffOp{kind: diffOpInsert, text: after[j], newLine: newLine})
+			j++
+			newLine++
+		case i < n:
+			ops = append(ops, diffOp{kind: diffOpDelete, text: before[i], oldLine: oldLine})
+			i++
+			oldLine++
+		}
+	}
+
+	return ops
+}
+
+type diffHunk struct {
+	start int
+	end   int
+}
+
+func diffHunks(ops []diffOp, contextLines int) []diffHunk {
+	var hunks []diffHunk
+	for i := 0; i < len(ops); i++ {
+		if ops[i].kind == diffOpEqual {
+			continue
+		}
+
+		changeStart := i
+		for i+1 < len(ops) && ops[i+1].kind != diffOpEqual {
+			i++
+		}
+		changeEnd := i + 1
+
+		start := maxInt(0, changeStart-contextLines)
+		end := minInt(len(ops), changeEnd+contextLines)
+
+		if len(hunks) > 0 && start <= hunks[len(hunks)-1].end {
+			if end > hunks[len(hunks)-1].end {
+				hunks[len(hunks)-1].end = end
+			}
+			continue
+		}
+
+		hunks = append(hunks, diffHunk{start: start, end: end})
+	}
+	return hunks
+}
+
+func hunkHeader(ops []diffOp) (oldStart int, oldCount int, newStart int, newCount int) {
+	oldStart = 1
+	newStart = 1
+	for _, op := range ops {
+		if op.oldLine > 0 {
+			oldStart = op.oldLine
+			break
+		}
+	}
+	for _, op := range ops {
+		if op.newLine > 0 {
+			newStart = op.newLine
+			break
+		}
+	}
+
+	for _, op := range ops {
+		if op.kind == diffOpEqual || op.kind == diffOpDelete {
+			oldCount++
+		}
+		if op.kind == diffOpEqual || op.kind == diffOpInsert {
+			newCount++
+		}
+	}
+
+	if oldCount == 0 {
+		oldStart = maxInt(0, oldStart-1)
+	}
+	if newCount == 0 {
+		newStart = maxInt(0, newStart-1)
+	}
+
+	return oldStart, oldCount, newStart, newCount
 }
 
 func splitPatchLines(content string) []string {
@@ -189,4 +342,18 @@ func splitPatchLines(content string) []string {
 		lines = lines[:len(lines)-1]
 	}
 	return lines
+}
+
+func minInt(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
