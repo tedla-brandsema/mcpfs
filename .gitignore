@@ -9,7 +9,7 @@
 *.dylib
 .mcpfs/
 bin/
-mcpfs
+/mcpfs
 
 # Test binary, built with `go test -c`
 *.test
